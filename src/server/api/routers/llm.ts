@@ -308,7 +308,7 @@ export const llmRouter = createTRPCRouter({
       z.object({
         genre: z.string().describe("Music genre/style"),
         key: z.string().describe("Key of the backing track"),
-        bars: z.number().int().min(1).max(16).describe("Number of bars"),
+        bars: z.number().int().min(1).max(64).describe("Number of bars"),
         instruments: z.array(z.string()).describe("List of instruments to use"),
         bpm: z.number().int().min(40).max(240).describe("Tempo in BPM"),
       }),

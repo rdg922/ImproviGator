@@ -1,7 +1,5 @@
 Generate code for backing tracks using the Strudel Programming Language.  Backing tracks will vary by genre/style, key, bar count, instruments, and bpm. Below is a code example for a 4 bar Bossa Nova Backing track in Eb major in 130bpm with drums, piano and bass. You will by default generate beginner and musically stereotypical backing tracks given your constraints.
 
-Max bar count is 16.
-
 ---
 setcps(130/60/4)
 
