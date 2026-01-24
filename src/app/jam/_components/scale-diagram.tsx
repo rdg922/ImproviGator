@@ -1,9 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Guitar from "react-guitar";
+import type { ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { Note as TonalNote, Scale } from "tonal";
 import { useJamSession } from "./jam-session-context";
+
+interface GuitarProps {
+  className?: string;
+  strings: number[];
+  onChange: (strings: number[]) => void;
+  frets: { from: number; amount: number };
+  renderFinger?: (stringIndex: number, fret: number) => ReactNode;
+}
+
+const Guitar = dynamic<GuitarProps>(
+  () => import("react-guitar").then((mod) => mod.default),
+  { ssr: false },
+);
+Guitar.displayName = "Guitar";
 
 const STANDARD_TUNING = [64, 59, 55, 50, 45, 40]; // High E to Low E
 const FRET_RANGE = { from: 0, amount: 12 } as const;
@@ -45,9 +60,10 @@ export default function ScaleDiagram() {
     );
   }, [key, modality, rootPitchClass]);
 
-  const renderFinger = useMemo(
-    () => (stringIndex: number, fret: number) => {
-      const midiNote = STANDARD_TUNING[stringIndex] + fret;
+  const renderFinger = useMemo(() => {
+    const renderFingerInternal = (stringIndex: number, fret: number) => {
+      const openPitch = STANDARD_TUNING[stringIndex] ?? 0;
+      const midiNote = openPitch + fret;
       const chroma = pitchClass(midiNote);
       if (!scalePitchClasses.has(chroma)) {
         return null;
@@ -69,9 +85,10 @@ export default function ScaleDiagram() {
           {label}
         </span>
       );
-    },
-    [rootPitchClass, scalePitchClasses],
-  );
+    };
+
+    return renderFingerInternal;
+  }, [rootPitchClass, scalePitchClasses]);
 
   return (
     <div className="flex h-full flex-col border-4 border-black bg-white p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
