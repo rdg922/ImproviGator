@@ -34,6 +34,44 @@ const TIME_SIGNATURES = ["2/4", "3/4", "4/4", "5/4"];
 const DEFAULT_INSTRUMENTS = ["drums", "piano", "bass", "guitar"];
 const DEFAULT_BAR_COUNT = 16;
 
+type BackingTrackPreset = {
+  name: string;
+  key: string;
+  modality: string;
+  tempo: number;
+  timeSignature: string;
+  instruments: string[];
+  bars: number;
+  description: string;
+  strudelCode: string;
+};
+
+const BACKING_TRACK_PRESETS: BackingTrackPreset[] = [
+  {
+    name: "Standard Swing",
+    key: "C",
+    modality: "Major",
+    tempo: 120,
+    timeSignature: "4/4",
+    instruments: ["piano", "bass", "drums"],
+    bars: 16,
+    description: "Classic Jazz",
+    strudelCode: `setcps(120/60/4)
+
+// 16 Bar Chill Jazz Progression in C Major
+let chords = chord("<C^9 A-7 D-9 G13 C^9 A7b13 D-9 G7alt C^9 C7 F^7 F-7 C^9 A-7 D-9 G13>")
+
+// Synth
+$: chords.voicing().s("gm_epiano1").struct("x ~ x ~ ~ x ~ ~").room(0.6).velocity(0.6).swingBy(1/3, 4).gain(1)
+
+// Bass
+$: chords.rootNotes().s("gm_acoustic_bass").struct("x ~ ~ x x ~ ~ ~").octave(2).gain(0.8).lpf(400).gain(1)
+
+// Drums
+$: s("bd ~ bd ~").bank("RolandTR808").gain(0.7)
+$: s("hh*8").bank("RolandTR808").velocity("<0.5 0.2>").swingBy(1/3, 4).gain(1)`
+  },];
+
 type CreatePanelProps = {
   onGenerationComplete?: () => void;
 };
@@ -71,6 +109,7 @@ export default function CreatePanel({
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<string>("");
 
   const generateBackingTrack = api.llm.generateBackingTrack.useMutation({
     onSuccess: (data) => {
@@ -130,6 +169,39 @@ export default function CreatePanel({
       instruments: finalInstruments,
       bpm: localTempo,
     });
+  };
+
+  const handleLoadPreset = () => {
+    if (!selectedPreset) return;
+
+    const preset = BACKING_TRACK_PRESETS.find((p) => p.name === selectedPreset);
+    if (!preset) return;
+
+    // Update local state
+    setLocalKey(preset.key);
+    setLocalModality(preset.modality);
+    setLocalTempo(preset.tempo);
+    setLocalTimeSignature(preset.timeSignature);
+    setLocalBars(preset.bars);
+    setLocalInstrumentsInput(preset.instruments.join(", "));
+    setLocalDescription(preset.description);
+
+    // Update context immediately
+    setKey(preset.key);
+    setModality(preset.modality);
+    setTempo(preset.tempo);
+    setTimeSignature(preset.timeSignature);
+    setInstruments(preset.instruments);
+    setDescription(preset.description);
+
+    // Load the Strudel code
+    setStrudelCode(preset.strudelCode);
+
+    setFeedback({
+      type: "success",
+      message: `Loaded preset: ${preset.name}`,
+    });
+    onGenerationComplete?.();
   };
 
   return (
@@ -251,6 +323,33 @@ export default function CreatePanel({
         >
           {generateBackingTrack.isPending ? "Generating..." : "Generate"}
         </button>
+
+        <div className="border-t-4 border-black pt-2">
+          <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
+            Or Load a Preset
+          </label>
+          <div className="flex gap-2">
+            <select
+              value={selectedPreset}
+              onChange={(e) => setSelectedPreset(e.target.value)}
+              className="flex-1 border-4 border-black bg-cyan-200 px-3 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+            >
+              <option value="">Select a preset...</option>
+              {BACKING_TRACK_PRESETS.map((preset) => (
+                <option key={preset.name} value={preset.name}>
+                  {preset.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleLoadPreset}
+              disabled={!selectedPreset}
+              className="border-4 border-black bg-cyan-400 px-4 py-2 font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:bg-cyan-300 disabled:opacity-50 disabled:shadow-none"
+            >
+              Load
+            </button>
+          </div>
+        </div>
 
         {feedback && (
           <div
