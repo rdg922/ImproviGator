@@ -77,24 +77,14 @@ const JamSessionContext = createContext<JamSessionContextType | undefined>(
   undefined,
 );
 
-const DEFAULT_STRUDEL_CODE = `setcpm(120/4)
-
-let chords = chord("<C G Am F>*4")
-
-// Drums: Basic rock beat
-$: s("bd [~ sd] bd [~ sd], hh*8").bank("RolandTR808").gain(1)
-
-// Piano: Chords playing on the beat
-$: chords.voicing().room(.3).velocity(.8).gain(1)
-
-// Bass: Root notes of the chords
-$: n("0*4").set(chords).mode("root:C2").voicing().lpf(300).gain(.8)
-
-// Guitar Solo: Improvisation vibes in C Major
-$: n("<0 2 4 5 7 5 4 2>(3,8) <7 5 4 2 0>(2,8) <0 2 4 5 7 9 12 11>*2").gain(1)
-  .scale("C4:major") // C Major scale, starting from C4
-  .s("gm_electric_guitar_jazz")
-  .lpf(1500).room(0.6).gain(2)`;
+const DEFAULT_STRUDEL_CODE = `let chords = chord(\`<
+F7 Bb7 F7 [Cm7 F7]
+Bb7 Bo F7 [Am7 D7]
+Gm7 C7 [F7 D7] [Gm7 C7]
+>\`)
+$: n("7 8 [10 9] 8").set(chords).voicing().dec(.2)
+$: chords.struct("- x - x").voicing().room(.5)
+$: n("0 - 1 -").set(chords).mode("root:g2").voicing()`;
 
 export function JamSessionProvider({ children }: { children: ReactNode }) {
   const [key, setKey] = useState("C");
