@@ -130,9 +130,6 @@ export default function SavedChords() {
       {/* Header */}
       <div className="flex items-center justify-between border-b-4 border-black bg-pink-300 px-4 py-2">
         <span className="text-lg font-black">Saved Chords</span>
-        <button className="border-2 border-black bg-green-400 px-3 py-1 text-sm font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
-          + Add
-        </button>
       </div>
 
       {/* Chord List */}
@@ -142,7 +139,7 @@ export default function SavedChords() {
             <p className="font-bold text-gray-400">
               No saved chords yet.
               <br />
-              Heart suggestions from AI!
+              Save suggested chords from AI!
             </p>
           </div>
         ) : (

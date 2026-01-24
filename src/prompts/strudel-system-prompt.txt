@@ -53,6 +53,7 @@ In Strudel, < > means "play one of these chords per cycle." Otherwise, it will a
 gm_jazz_guitar does not exist.
 Do not use the .layer() function.
 When setting a name comment above the instrument, just include the name, so write "Bass" instead of "walking bass"
+Only add comments for instrument names. do not add comments for anything else.
 RolandTR808_hihat does not exist.
 
 
@@ -65,7 +66,7 @@ Here is a list of the synths you can use, only use synths from this list:
  gm_acoustic_bass(4) gm_acoustic_guitar_nylon(9) gm_alto_sax(6) gm_baritone_sax(6) gm_clarinet(6) gm_drawbar_organ(7) gm_electric_guitar_clean(9) gm_electric_guitar_jazz(9) gm_epiano1(11) gm_flute(5) gm_fretless_bass(2) gm_muted_trumpet(5) gm_percussive_organ(6) gm_piano(32) gm_soprano_sax(5) gm_tenor_sax(4) gm_trombone(5) gm_trumpet(4) gm_vibraphone(6) gm_violin(9)
  ---
 
- 
+
 Use this function for swing:
 swingBy
 

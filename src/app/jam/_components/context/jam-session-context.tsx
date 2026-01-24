@@ -125,11 +125,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   const [timeSignature, setTimeSignature] = useState("4/4");
   const [recording, setRecording] = useState<Recording | null>(null);
   const [midiData, setMidiData] = useState<MidiNote[]>([]);
-  const [savedChords, setSavedChords] = useState<SavedChord[]>([
-    { name: "Cmaj7", voicingIndex: 0 },
-    { name: "Am7", voicingIndex: 0 },
-    { name: "Dm7", voicingIndex: 0 },
-  ]);
+  const [savedChords, setSavedChords] = useState<SavedChord[]>([]);
   const [strudelCode, setStrudelCodeState] = useState(DEFAULT_STRUDEL_CODE);
   const [tracks, setTracks] = useState<TrackSetting[]>([]);
   const [parsedChords, setParsedChords] = useState<
