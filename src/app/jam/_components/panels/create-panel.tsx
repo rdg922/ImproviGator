@@ -50,6 +50,8 @@ export default function CreatePanel({
     setTempo,
     timeSignature,
     setTimeSignature,
+    instruments,
+    setInstruments,
     description,
     setDescription,
     setStrudelCode,
@@ -63,7 +65,7 @@ export default function CreatePanel({
   const [localDescription, setLocalDescription] = useState(description);
   const [localBars, setLocalBars] = useState(DEFAULT_BAR_COUNT);
   const [localInstrumentsInput, setLocalInstrumentsInput] = useState(
-    DEFAULT_INSTRUMENTS.join(", "),
+    instruments.join(", "),
   );
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
@@ -113,6 +115,10 @@ export default function CreatePanel({
       sanitizedInstruments.length > 0
         ? sanitizedInstruments
         : DEFAULT_INSTRUMENTS;
+    
+    // Persist instruments to context
+    setInstruments(finalInstruments);
+    
     const safeBars = Number.isFinite(localBars) ? localBars : DEFAULT_BAR_COUNT;
     const finalBars = Math.min(64, Math.max(1, safeBars));
 
