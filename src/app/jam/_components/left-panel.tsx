@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import AdvancedPanel from "./advanced-panel";
 import ChatPanel from "./chat-panel";
 import CreatePanel from "./create-panel";
+import TrackSettingsPanel from "./track-settings-panel";
 
-type LeftMode = "Create" | "Chat" | "Advanced";
+type LeftMode = "Create" | "Chat" | "TrackSettings";
 
 export default function LeftPanel() {
   const [mode, setMode] = useState<LeftMode>("Create");
@@ -35,22 +35,24 @@ export default function LeftPanel() {
           Chat
         </button>
         <button
-          onClick={() => setMode("Advanced")}
+          onClick={() => setMode("TrackSettings")}
           className={`flex-1 px-4 py-3 font-bold transition-colors ${
-            mode === "Advanced"
+            mode === "TrackSettings"
               ? "bg-purple-400 text-black"
               : "bg-white text-gray-600 hover:bg-gray-100"
           }`}
         >
-          Advanced
+          Track Settings
         </button>
       </div>
 
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
-        {mode === "Create" && <CreatePanel />}
+        {mode === "Create" && (
+          <CreatePanel onGenerationComplete={() => setMode("TrackSettings")} />
+        )}
         {mode === "Chat" && <ChatPanel />}
-        {mode === "Advanced" && <AdvancedPanel />}
+        {mode === "TrackSettings" && <TrackSettingsPanel />}
       </div>
     </div>
   );

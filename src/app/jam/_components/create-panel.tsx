@@ -34,7 +34,13 @@ const TIME_SIGNATURES = ["2/4", "3/4", "4/4", "5/4"];
 const DEFAULT_INSTRUMENTS = ["drums", "piano", "bass", "guitar"];
 const DEFAULT_BAR_COUNT = 16;
 
-export default function CreatePanel() {
+type CreatePanelProps = {
+  onGenerationComplete?: () => void;
+};
+
+export default function CreatePanel({
+  onGenerationComplete,
+}: CreatePanelProps = {}) {
   const {
     key,
     setKey,
@@ -55,9 +61,14 @@ export default function CreatePanel() {
   const [localTempo, setLocalTempo] = useState(tempo);
   const [localTimeSignature, setLocalTimeSignature] = useState(timeSignature);
   const [localDescription, setLocalDescription] = useState(description);
-  const [feedback, setFeedback] = useState<
-    { type: "success" | "error"; message: string } | null
-  >(null);
+  const [localBars, setLocalBars] = useState(DEFAULT_BAR_COUNT);
+  const [localInstrumentsInput, setLocalInstrumentsInput] = useState(
+    DEFAULT_INSTRUMENTS.join(", "),
+  );
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const generateBackingTrack = api.llm.generateBackingTrack.useMutation({
     onSuccess: (data) => {
@@ -65,8 +76,9 @@ export default function CreatePanel() {
         setStrudelCode(data.code);
         setFeedback({
           type: "success",
-          message: "Strudel code generated! Check the Advanced tab to tweak it.",
+          message: "Strudel code generated! Opening the Advanced tab...",
         });
+        onGenerationComplete?.();
         return;
       }
 
@@ -93,13 +105,23 @@ export default function CreatePanel() {
     const promptGenre =
       localDescription.trim() || `${localModality} improvisation vibes`;
     const descriptiveKey = `${localKey} ${localModality}`;
+    const sanitizedInstruments = localInstrumentsInput
+      .split(",")
+      .map((instrument) => instrument.trim())
+      .filter(Boolean);
+    const finalInstruments =
+      sanitizedInstruments.length > 0
+        ? sanitizedInstruments
+        : DEFAULT_INSTRUMENTS;
+    const safeBars = Number.isFinite(localBars) ? localBars : DEFAULT_BAR_COUNT;
+    const finalBars = Math.min(64, Math.max(1, safeBars));
 
     setFeedback(null);
     generateBackingTrack.mutate({
       genre: `${promptGenre} (${localTimeSignature})`,
       key: descriptiveKey,
-      bars: DEFAULT_BAR_COUNT,
-      instruments: DEFAULT_INSTRUMENTS,
+      bars: finalBars,
+      instruments: finalInstruments,
       bpm: localTempo,
     });
   };
@@ -155,6 +177,20 @@ export default function CreatePanel() {
 
         <div>
           <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
+            Bars (1-64)
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={64}
+            value={localBars}
+            onChange={(e) => setLocalBars(Number(e.target.value))}
+            className="w-full border-4 border-black bg-purple-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
             Time Signature
           </label>
           <div className="flex gap-2">
@@ -176,6 +212,19 @@ export default function CreatePanel() {
 
         <div>
           <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
+            Instruments (comma separated)
+          </label>
+          <input
+            type="text"
+            value={localInstrumentsInput}
+            onChange={(e) => setLocalInstrumentsInput(e.target.value)}
+            placeholder="e.g., drums, piano, bass"
+            className="w-full border-4 border-black bg-pink-100 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
             Description (genre, mood, etc.)
           </label>
           <textarea
@@ -190,7 +239,7 @@ export default function CreatePanel() {
         <button
           onClick={handleGenerate}
           disabled={generateBackingTrack.isPending}
-          className="w-full border-4 border-black bg-orange-400 px-6 py-3 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-none disabled:bg-orange-300"
+          className="w-full border-4 border-black bg-orange-400 px-6 py-3 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:bg-orange-300 disabled:shadow-none"
         >
           {generateBackingTrack.isPending ? "Generating..." : "Generate"}
         </button>

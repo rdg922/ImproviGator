@@ -1,6 +1,8 @@
 const STRUDEL_LINE_PATTERN = /^\s*\$:/;
 const COMMENT_LINE_PATTERN = /^\s*\/\//;
 const GAIN_AT_END_REGEX = /\.gain\(\s*[^)]+\s*\)\s*$/;
+const GAIN_VALUE_CAPTURE_REGEX = /\.gain\(\s*([^)]+)\s*\)\s*$/;
+const INSTRUMENT_COMMENT_REGEX = /^\s*\/\/\s*(.+)$/;
 
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -16,8 +18,42 @@ const setGainValue = (line: string, gain: number) =>
     ? line.replace(GAIN_AT_END_REGEX, `.gain(${gain})`)
     : `${line}.gain(${gain})`;
 
+const extractInstrumentName = (line: string) => {
+  const match = line.match(INSTRUMENT_COMMENT_REGEX);
+  return match ? match[1].trim() : null;
+};
+
 const toInstrumentCommentPattern = (instrument: string) =>
   new RegExp(`^\\s*//\\s*${escapeRegExp(instrument)}\\b.*$`, "i");
+
+const extractGainFromBlock = (lines: string[], startIndex: number) => {
+  for (let cursor = startIndex; cursor < lines.length; cursor += 1) {
+    const rawLine = lines[cursor];
+    const trimmedLine = rawLine.trim();
+
+    if (!trimmedLine.length) {
+      continue;
+    }
+
+    if (COMMENT_LINE_PATTERN.test(trimmedLine)) {
+      return 1;
+    }
+
+    if (!STRUDEL_LINE_PATTERN.test(rawLine)) {
+      return 1;
+    }
+
+    const gainMatch = rawLine.match(GAIN_VALUE_CAPTURE_REGEX);
+    if (!gainMatch) {
+      return 1;
+    }
+
+    const parsedGain = Number(gainMatch[1]);
+    return Number.isFinite(parsedGain) ? parsedGain : 1;
+  }
+
+  return 1;
+};
 
 const applyGainToBlock = (
   lines: string[],
@@ -95,5 +131,26 @@ export const handleStrudel = {
     }
 
     return code;
+  },
+
+  get_tracks(code: string) {
+    if (typeof code !== "string" || !code.length) {
+      return [] as Array<{ instrument: string; gain: number }>;
+    }
+
+    const lines = code.split(/\r?\n/);
+    const tracks: Array<{ instrument: string; gain: number }> = [];
+
+    for (let index = 0; index < lines.length; index += 1) {
+      const instrument = extractInstrumentName(lines[index]);
+      if (!instrument) {
+        continue;
+      }
+
+      const gain = extractGainFromBlock(lines, index + 1);
+      tracks.push({ instrument, gain });
+    }
+
+    return tracks;
   },
 };
