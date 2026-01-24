@@ -13,9 +13,11 @@ export interface Note {
 }
 
 export interface PitchDetectionParams {
-  frameThreshold: number;
-  onsetThreshold: number;
-  minNoteLength: number;
+  noteSegmentation: number;
+  modelConfidenceThreshold: number;
+  minPitchHz: number;
+  maxPitchHz: number;
+  minNoteLengthMs: number;
 }
 
 /**
@@ -75,9 +77,9 @@ export async function detectNotesFromAudio(
       outputToNotesPoly(
         frames,
         onsets,
-        params.frameThreshold,
-        params.onsetThreshold,
-        params.minNoteLength,
+        params.noteSegmentation,
+        params.modelConfidenceThreshold,
+        1,
       ),
     ),
   );

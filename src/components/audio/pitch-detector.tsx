@@ -33,9 +33,12 @@ export default function PitchDetector() {
   const [error, setError] = useState<string>("");
   const [selectedScale, setSelectedScale] = useState<string>("Major");
   const [rootNote, setRootNote] = useState<number>(0);
-  const [onsetThreshold, setOnsetThreshold] = useState<number>(0.5);
-  const [frameThreshold, setFrameThreshold] = useState<number>(0.6);
-  const [minNoteLength, setMinNoteLength] = useState<number>(10);
+  const [noteSegmentation, setNoteSegmentation] = useState<number>(0.5);
+  const [modelConfidenceThreshold, setModelConfidenceThreshold] =
+    useState<number>(0.3);
+  const [minNoteLengthMs, setMinNoteLengthMs] = useState<number>(11);
+  const [minPitchHz, setMinPitchHz] = useState<number>(0);
+  const [maxPitchHz, setMaxPitchHz] = useState<number>(3000);
 
   const { isRecording, startRecording, stopRecording } = useAudioRecorder();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -49,7 +52,13 @@ export default function PitchDetector() {
 
       const detectedNotes = await detectNotesFromAudio(
         audioBuffer,
-        { frameThreshold, onsetThreshold, minNoteLength },
+        {
+          noteSegmentation,
+          modelConfidenceThreshold,
+          minPitchHz,
+          maxPitchHz,
+          minNoteLengthMs,
+        },
         (p: number) => setProgress(Math.round(p * 100)),
       );
 
@@ -276,15 +285,17 @@ export default function PitchDetector() {
                 color: "#d1d5db",
               }}
             >
-              Model Confidence: {frameThreshold.toFixed(2)}
+              Model Confidence: {modelConfidenceThreshold.toFixed(2)}
             </label>
             <input
               type="range"
               min="0.1"
               max="0.9"
               step="0.05"
-              value={frameThreshold}
-              onChange={(e) => setFrameThreshold(Number(e.target.value))}
+              value={modelConfidenceThreshold}
+              onChange={(e) =>
+                setModelConfidenceThreshold(Number(e.target.value))
+              }
               style={{ width: "100%" }}
             />
             <p
@@ -306,15 +317,15 @@ export default function PitchDetector() {
                 color: "#d1d5db",
               }}
             >
-              Note Segmentation: {onsetThreshold.toFixed(2)}
+              Note Segmentation: {noteSegmentation.toFixed(2)}
             </label>
             <input
               type="range"
               min="0.1"
               max="0.9"
               step="0.05"
-              value={onsetThreshold}
-              onChange={(e) => setOnsetThreshold(Number(e.target.value))}
+              value={noteSegmentation}
+              onChange={(e) => setNoteSegmentation(Number(e.target.value))}
               style={{ width: "100%" }}
             />
             <p
@@ -336,15 +347,15 @@ export default function PitchDetector() {
                 color: "#d1d5db",
               }}
             >
-              Min Note Length: {minNoteLength}ms
+              Min Note Length: {minNoteLengthMs}ms
             </label>
             <input
               type="range"
               min="1"
               max="50"
               step="1"
-              value={minNoteLength}
-              onChange={(e) => setMinNoteLength(Number(e.target.value))}
+              value={minNoteLengthMs}
+              onChange={(e) => setMinNoteLengthMs(Number(e.target.value))}
               style={{ width: "100%" }}
             />
             <p

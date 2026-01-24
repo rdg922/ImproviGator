@@ -6,15 +6,53 @@ import { useJamSession } from "../context/jam-session-context";
 
 const formatDuration = (ms: number) => `${(ms / 1000).toFixed(2)}s`;
 
+const FALLBACK_CHORDS: Array<{ chord: string | string[]; index: number }> = [
+  { chord: "Cmaj7", index: 0 },
+  { chord: "Dm7", index: 1 },
+  { chord: "G7", index: 2 },
+  { chord: "Cmaj7", index: 3 },
+];
+
+const getChordLabel = (slice: { chord: string | string[] }) =>
+  Array.isArray(slice.chord) ? slice.chord.join(" / ") : slice.chord;
+
+const hashChord = (value: string) => {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+};
+
+const getChordColors = (label: string) => {
+  const hue = hashChord(label) % 360;
+  return {
+    background: `hsla(${hue}, 70%, 85%, 0.35)`,
+    divider: `hsla(${hue}, 30%, 35%, 0.35)`,
+    label: `hsla(${hue}, 35%, 20%, 0.55)`,
+  };
+};
+
 interface RightPanelRecordingProps {
   resetToken?: number;
+  currentTimeMs?: number;
+  isPlaying?: boolean;
 }
 
 export default function RightPanelRecording({
   resetToken,
+  currentTimeMs = 0,
+  isPlaying = false,
 }: RightPanelRecordingProps) {
-  const { recording, midiData, analysisResult, analysisStatus } =
-    useJamSession();
+  const {
+    recording,
+    midiData,
+    analysisResult,
+    analysisStatus,
+    parsedChords,
+    tempo,
+    timeSignature,
+  } = useJamSession();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
@@ -45,6 +83,21 @@ export default function RightPanelRecording({
     [midiData, recording],
   );
 
+  const chordSlices = useMemo(
+    () => (parsedChords.length > 0 ? parsedChords : FALLBACK_CHORDS),
+    [parsedChords],
+  );
+
+  const beatsPerBar = useMemo(() => {
+    const numerator = Number(timeSignature.split("/")[0]);
+    return Number.isFinite(numerator) && numerator > 0 ? numerator : 4;
+  }, [timeSignature]);
+
+  const beatDurationMs = useMemo(() => {
+    if (!Number.isFinite(tempo) || tempo <= 0) return 500;
+    return Math.max(200, Math.round((60 / tempo) * 1000));
+  }, [tempo]);
+
   const totalDurationMs = useMemo(() => {
     if (!recording) return 0;
     const maxEnd = notes.reduce(
@@ -54,16 +107,45 @@ export default function RightPanelRecording({
     return Math.max(recording.duration, maxEnd);
   }, [recording, notes]);
 
+  const chordDurationMs = useMemo(
+    () => Math.max(1, Math.round(beatsPerBar * beatDurationMs)),
+    [beatsPerBar, beatDurationMs],
+  );
+
+  const chordSegments = useMemo(() => {
+    if (!recording || chordSlices.length === 0) return [];
+    const totalSegments = Math.max(
+      1,
+      Math.ceil(totalDurationMs / chordDurationMs),
+    );
+
+    return Array.from({ length: totalSegments }, (_, index) => {
+      const slice = chordSlices[index % chordSlices.length];
+      const startMs = index * chordDurationMs;
+      const endMs = Math.min(totalDurationMs, startMs + chordDurationMs);
+      const label = getChordLabel(slice);
+      return {
+        index,
+        startMs,
+        endMs,
+        label,
+        colors: getChordColors(label),
+      };
+    });
+  }, [recording, chordSlices, chordDurationMs, totalDurationMs]);
+
   const pixelsPerMs = 0.15;
   const timelineWidth = Math.max(
     viewportWidth,
     Math.ceil(totalDurationMs * pixelsPerMs),
   );
   const maxScroll = Math.max(0, timelineWidth - viewportWidth);
-  const currentTimeMs = Math.min(
+  const scrubTimeMs = Math.min(
     totalDurationMs,
     Math.max(0, (scrollLeft + viewportWidth / 2) / pixelsPerMs),
   );
+  const playheadMs = isPlaying ? currentTimeMs : scrubTimeMs;
+  const playheadX = Math.min(timelineWidth, playheadMs * pixelsPerMs);
 
   useEffect(() => {
     const updateViewport = () => {
@@ -81,6 +163,45 @@ export default function RightPanelRecording({
     scrollRef.current.scrollLeft = 0;
     setScrollLeft(0);
   }, [resetToken]);
+
+  useEffect(() => {
+    if (!scrollRef.current || !isPlaying) return;
+    const targetScroll = Math.min(
+      maxScroll,
+      Math.max(0, playheadX - viewportWidth / 2),
+    );
+    scrollRef.current.scrollLeft = targetScroll;
+    setScrollLeft(targetScroll);
+  }, [isPlaying, playheadX, viewportWidth, maxScroll]);
+
+  useEffect(() => {
+    if (!recording) return;
+    console.info("Take overview inputs", {
+      analysisStatus,
+      analysisResult,
+      recording,
+      midiData,
+      derivedStats: {
+        totalDurationMs,
+        timelineWidth,
+        pixelsPerMs,
+        maxScroll,
+        currentTimeMs: playheadMs,
+        notesCount: notes.length,
+      },
+    });
+  }, [
+    recording,
+    analysisStatus,
+    analysisResult,
+    midiData,
+    totalDurationMs,
+    timelineWidth,
+    pixelsPerMs,
+    maxScroll,
+    playheadMs,
+    notes.length,
+  ]);
 
   const handleScroll = () => {
     if (!scrollRef.current) return;
@@ -107,37 +228,8 @@ export default function RightPanelRecording({
   }
 
   return (
-    <div className="mb-6 flex-1 overflow-y-auto rounded-xl border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-      <div className="mb-4 flex items-baseline justify-between">
-        <div>
-          <p className="text-xs font-bold text-gray-500 uppercase">Recording</p>
-          <h2 className="text-2xl font-black tracking-wide">Take Overview</h2>
-        </div>
-        <span className="rounded-full border-4 border-black bg-green-200 px-4 py-1 text-xs font-black tracking-wide uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          {stats?.durationLabel}
-        </span>
-      </div>
-      <div className="mb-4 rounded-lg border-4 border-black bg-blue-50 p-4">
-        <div className="mb-3 flex items-center justify-between text-xs font-bold text-gray-600">
-          <span>
-            {formatDuration(currentTimeMs)} / {stats?.durationLabel ?? "0s"}
-          </span>
-          <span>{notes.length} notes</span>
-        </div>
-        <input
-          type="range"
-          min={0}
-          max={maxScroll}
-          value={scrollLeft}
-          onChange={handleScrub}
-          className="w-full accent-black"
-        />
-      </div>
-
-      <p className="mb-2 text-xs font-bold text-gray-500 uppercase">
-        MIDI Timeline
-      </p>
-      <div className="relative h-56 overflow-hidden rounded-lg border-4 border-black bg-white">
+    <div className="mb-6 flex flex-1 flex-col overflow-hidden rounded-xl border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+      <div className="relative flex-1 overflow-hidden bg-white">
         {/* <div className="pointer-events-none absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 bg-red-500" /> */}
         <div
           ref={scrollRef}
@@ -148,7 +240,11 @@ export default function RightPanelRecording({
             className="relative h-full"
             style={{ width: `${timelineWidth}px` }}
           >
-            <div className="absolute top-0 h-6 w-full border-b-2 border-black bg-gray-100">
+            <div
+              className="pointer-events-none absolute inset-y-0 z-20 w-1 -translate-x-1/2 rounded-full bg-red-500"
+              style={{ left: `${playheadX}px` }}
+            />
+            <div className="absolute top-0 z-10 h-6 w-full border-b-2 border-black bg-gray-100">
               {Array.from({
                 length: Math.ceil(totalDurationMs / 1000) + 1,
               }).map((_, index) => (
@@ -158,6 +254,30 @@ export default function RightPanelRecording({
                   style={{ left: `${index * 1000 * pixelsPerMs}px` }}
                 >
                   <span className="ml-1">{index}s</span>
+                </div>
+              ))}
+            </div>
+            <div className="pointer-events-none absolute inset-x-0 top-8 bottom-0">
+              {chordSegments.map((segment) => (
+                <div
+                  key={`chord-segment-${segment.index}`}
+                  className="absolute inset-y-0 border-r-2 border-dotted"
+                  style={{
+                    left: `${segment.startMs * pixelsPerMs}px`,
+                    width: `${Math.max(
+                      2,
+                      (segment.endMs - segment.startMs) * pixelsPerMs,
+                    )}px`,
+                    backgroundColor: segment.colors.background,
+                    borderColor: segment.colors.divider,
+                  }}
+                >
+                  <span
+                    className="absolute top-2 left-2 text-xs font-bold"
+                    style={{ color: segment.colors.label }}
+                  >
+                    {segment.label}
+                  </span>
                 </div>
               ))}
             </div>
@@ -175,55 +295,6 @@ export default function RightPanelRecording({
                 />
               ))}
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-lg border-4 border-black bg-gray-50 p-4 text-xs">
-        <p className="mb-2 text-xs font-bold text-gray-600 uppercase">
-          Debug: Take Overview Inputs
-        </p>
-        <div className="space-y-3 font-mono">
-          <div>
-            <p className="mb-1 font-bold">analysisStatus</p>
-            <pre className="break-words whitespace-pre-wrap">
-              {JSON.stringify(analysisStatus, null, 2)}
-            </pre>
-          </div>
-          <div>
-            <p className="mb-1 font-bold">analysisResult</p>
-            <pre className="break-words whitespace-pre-wrap">
-              {JSON.stringify(analysisResult, null, 2)}
-            </pre>
-          </div>
-          <div>
-            <p className="mb-1 font-bold">recording</p>
-            <pre className="break-words whitespace-pre-wrap">
-              {JSON.stringify(recording, null, 2)}
-            </pre>
-          </div>
-          <div>
-            <p className="mb-1 font-bold">midiData</p>
-            <pre className="break-words whitespace-pre-wrap">
-              {JSON.stringify(midiData, null, 2)}
-            </pre>
-          </div>
-          <div>
-            <p className="mb-1 font-bold">derivedStats</p>
-            <pre className="break-words whitespace-pre-wrap">
-              {JSON.stringify(
-                {
-                  totalDurationMs,
-                  timelineWidth,
-                  pixelsPerMs,
-                  maxScroll,
-                  currentTimeMs,
-                  notesCount: notes.length,
-                },
-                null,
-                2,
-              )}
-            </pre>
           </div>
         </div>
       </div>
