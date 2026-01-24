@@ -11,17 +11,20 @@ const CHAT_SYSTEM_INSTRUCTION = `You are a helpful music assistant for a music i
 You can:
 1. Edit the backing track (Strudel code)
 2. Show scales on the fretboard
-3. Add chords to the saved chords list
+3. Show chords with diagrams that users can save
 4. Answer basic music theory questions (scales, modes, arpeggios) using the music_theory_query tool
-5. Offer music theory solo suggestions and feedback to accompany the current backing track. This can range from high level theory of using a single scale for starting, to utilizing certain arpeggions that fit over the V.
+5. Offer music theory solo suggestions and feedback to accompany the current backing track. This can range from high level theory of using a single scale for starting, to utilizing certain arpeggios that fit over the V.
 
-When the user asks to make changes to the backing track, call the edit_backing_track tool.
-When the user asks to see a scale or show notes on the fretboard, call the show_scale tool.
-When the user asks to add or save a chord, call the add_chord tool. Chord voicings are available from chords-db; you can optionally set a 0-based voicingIndex.
-When the user asks a music theory question (like what scales/arpeggios fit), call the music_theory_query tool and if applicable show_scale and/or add_chords
-Always use the current backing track Strudel code and the session context when answering.
+IMPORTANT: Always use the appropriate tool when relevant:
+- When the user asks to make changes to the backing track → call edit_backing_track
+- When the user asks to see a scale or show notes on the fretboard → call show_scale
+- When suggesting chords, discussing chord progressions, or answering "what chord should I use" → call show_chord with the chord names
+- When the user asks about music theory (scales/modes/arpeggios) → call music_theory_query, then follow up with show_scale and/or show_chord as appropriate
+- When recommending chords for practice or soloing → call show_chord to display them
 
-Be conversational and helpful. Understand musical terminology and context.`;
+For chord voicings from chords-db, you can optionally set a 0-based voicingIndex (default to 0).
+
+Be conversational and helpful. Understand musical terminology and context. When suggesting chords for the user to practice or try, ALWAYS use the show_chord tool so they can see the chord diagram and save it.`;
 
 // Tool declarations
 const EDIT_BACKING_TRACK_TOOL = {
@@ -68,10 +71,10 @@ const SHOW_SCALE_TOOL = {
   },
 };
 
-const ADD_CHORD_TOOL = {
-  name: "add_chord",
+const SHOW_CHORD_TOOL = {
+  name: "show_chord",
   description:
-    "Adds one or more chords to the saved chords list. Use this when the user wants to save or remember a chord for later use. Optionally include voicingIndex (0-based) to choose a chord voicing from chords-db.",
+    "Shows one or more chords in the chat with chord diagrams. Use this when the user asks about chords, wants to see chord shapes, or needs chord suggestions. The user can then add them to saved chords manually. Optionally include voicingIndex (0-based) to choose a chord voicing from chords-db.",
   parameters: {
     type: Type.OBJECT,
     properties: {
@@ -86,7 +89,7 @@ const ADD_CHORD_TOOL = {
           type: Type.STRING,
         },
         description:
-          "A list of chord names to add in standard notation (e.g., [Cmaj7, Dm7, G7]).",
+          "A list of chord names to show in standard notation (e.g., [Cmaj7, Dm7, G7]).",
       },
       voicingIndex: {
         type: Type.NUMBER,
@@ -160,7 +163,7 @@ const normalizeScaleName = (name: string) =>
 export type ToolResult =
   | { type: "edit_backing_track"; newStrudelCode: string; explanation: string }
   | { type: "show_scale"; key: string; modality: string }
-  | { type: "add_chord"; chord: string; voicingIndex?: number };
+  | { type: "show_chord"; chord: string; voicingIndex?: number };
 
 const isFunctionCallPart = (
   part: ConversationPart,
@@ -260,7 +263,7 @@ const handleToolCalls = async (
         break;
       }
 
-      case ADD_CHORD_TOOL.name: {
+      case SHOW_CHORD_TOOL.name: {
         const chord = typeof args.chord === "string" ? args.chord : "";
         const chordList = Array.isArray(args.chords)
           ? args.chords.filter(
@@ -301,36 +304,20 @@ const handleToolCalls = async (
             error: "No chord name provided",
           };
         } else {
-          const addedChords: string[] = [];
-          const skippedChords: string[] = [];
-
           uniqueChords.forEach((name) => {
-            if (currentContext.savedChords.includes(name)) {
-              skippedChords.push(name);
-            } else {
-              addedChords.push(name);
-              const resolvedVoicing = chordVoicingMap.get(name);
-              toolResults.push({
-                type: "add_chord",
-                chord: name,
-                ...(typeof resolvedVoicing === "number"
-                  ? { voicingIndex: resolvedVoicing }
-                  : {}),
-              });
-            }
+            const resolvedVoicing = chordVoicingMap.get(name);
+            toolResults.push({
+              type: "show_chord",
+              chord: name,
+              ...(typeof resolvedVoicing === "number"
+                ? { voicingIndex: resolvedVoicing }
+                : {}),
+            });
           });
-
-          const messages: string[] = [];
-          if (addedChords.length > 0) {
-            messages.push(`Added ${addedChords.join(", ")} to saved chords`);
-          }
-          if (skippedChords.length > 0) {
-            messages.push(`Already saved: ${skippedChords.join(", ")}`);
-          }
 
           response = {
             success: true,
-            message: messages.join(". "),
+            message: `Showing chord${uniqueChords.length > 1 ? "s" : ""}: ${uniqueChords.join(", ")}`,
           };
         }
         break;
@@ -489,7 +476,7 @@ ${context.strudelCode}
             functionDeclarations: [
               EDIT_BACKING_TRACK_TOOL,
               SHOW_SCALE_TOOL,
-              ADD_CHORD_TOOL,
+              SHOW_CHORD_TOOL,
               MUSIC_THEORY_TOOL,
             ],
           },

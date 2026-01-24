@@ -4,6 +4,11 @@ import { useState } from "react";
 import { useJamSession } from "./jam-session-context";
 import type { ChatMessage, ConversationEntry } from "./jam-session-context";
 import { api } from "~/trpc/react";
+import Chord from "~/app/_components/react-chords/react-chords/src/Chord";
+import {
+  GUITAR_INSTRUMENT,
+  getChordData,
+} from "~/lib/chord-utils";
 
 export default function ChatPanel() {
   const {
@@ -124,18 +129,10 @@ export default function ChatPanel() {
                 setKey(toolResult.key);
                 setModality(toolResult.modality);
                 break;
-              case "add_chord":
-                console.log("Adding chord:", toolResult.chord);
-                {
-                  const voicingIndex =
-                    typeof toolResult === "object" &&
-                    toolResult !== null &&
-                    "voicingIndex" in toolResult &&
-                    typeof toolResult.voicingIndex === "number"
-                      ? toolResult.voicingIndex
-                      : undefined;
-                  addSavedChord(toolResult.chord, voicingIndex);
-                }
+              case "show_chord":
+                console.log("Showing chord:", toolResult.chord);
+                // Chord will be displayed in the chat message with the response
+                // User can add it manually with a + button
                 break;
             }
           }
@@ -144,6 +141,12 @@ export default function ChatPanel() {
         const assistantReply: ChatMessage = {
           role: "assistant",
           content: result.response,
+          suggestedChords: result.toolResults
+            ?.filter((tr) => tr.type === "show_chord")
+            .map((tr) => ({
+              chord: tr.chord,
+              voicingIndex: tr.voicingIndex,
+            })),
         };
         setChatMessages((prev: ChatMessage[]) => [...prev, assistantReply]);
 
@@ -181,8 +184,8 @@ export default function ChatPanel() {
     }
   };
 
-  const handleHeartChord = (chord: string) => {
-    addSavedChord(chord);
+  const handleHeartChord = (chord: string, voicingIndex?: number) => {
+    addSavedChord(chord, voicingIndex);
   };
 
   return (
@@ -203,20 +206,43 @@ export default function ChatPanel() {
                 {message.content}
               </div>
             </div>
-            {message.suggestedChord && (
-              <div className="mt-2 flex justify-start">
-                <div className="flex items-center gap-2 border-4 border-black bg-yellow-200 px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                  <span className="text-lg font-black">
-                    {message.suggestedChord}
-                  </span>
-                  <button
-                    onClick={() => handleHeartChord(message.suggestedChord!)}
-                    className="text-xl transition-transform hover:scale-110 active:scale-95"
-                    title="Save to favorites"
-                  >
-                    ❤️
-                  </button>
-                </div>
+            {message.suggestedChords && message.suggestedChords.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2 justify-start">
+                {message.suggestedChords.map((suggestion, idx) => {
+                  const chordData = getChordData(
+                    suggestion.chord,
+                    suggestion.voicingIndex ?? 0,
+                  );
+                  return (
+                    <div
+                      key={`${suggestion.chord}-${idx}`}
+                      className="flex flex-col items-center border-4 border-black bg-yellow-200 p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-48"
+                    >
+                      <div className="mb-1 text-xs font-black">
+                        {suggestion.chord}
+                      </div>
+                      <div className="scale-75">
+                        <Chord
+                          chord={chordData}
+                          instrument={GUITAR_INSTRUMENT}
+                          lite={true}
+                        />
+                      </div>
+                      <button
+                        onClick={() =>
+                          handleHeartChord(
+                            suggestion.chord,
+                            suggestion.voicingIndex,
+                          )
+                        }
+                        className="mt-1 border-2 border-black bg-pink-400 px-3 py-1 text-sm font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-px hover:translate-y-px hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                        title="Add to saved chords"
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

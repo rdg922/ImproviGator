@@ -27,7 +27,7 @@ export interface SavedChord {
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
-  suggestedChord?: string;
+  suggestedChords?: Array<{ chord: string; voicingIndex?: number }>;
 }
 
 export interface ConversationEntry {
