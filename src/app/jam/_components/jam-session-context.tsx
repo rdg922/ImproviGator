@@ -24,6 +24,8 @@ interface JamSessionContextType {
   setModality: (modality: string) => void;
   tempo: number;
   setTempo: (tempo: number) => void;
+  timeSignature: string;
+  setTimeSignature: (timeSignature: string) => void;
   
   // Recording data
   recording: Recording | null;
@@ -51,6 +53,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   const [key, setKey] = useState("C");
   const [modality, setModality] = useState("Major");
   const [tempo, setTempo] = useState(120);
+  const [timeSignature, setTimeSignature] = useState("4/4");
   const [recording, setRecording] = useState<Recording | null>(null);
   const [midiData, setMidiData] = useState<MidiNote[]>([]);
   const [savedChords, setSavedChords] = useState<string[]>(["Cmaj7", "Am7", "Dm7"]);
@@ -76,6 +79,8 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
         setModality,
         tempo,
         setTempo,
+        timeSignature,
+        setTimeSignature,
         recording,
         setRecording,
         midiData,

@@ -13,6 +13,8 @@ export default function LeftPanel() {
     setModality,
     tempo,
     setTempo,
+    timeSignature,
+    setTimeSignature,
     description,
     setDescription,
     strudelCode,
@@ -91,50 +93,51 @@ export default function LeftPanel() {
         {mode === "Create" && (
           <div className="flex h-full flex-col p-4">
             <div className="flex-1 space-y-4 overflow-y-auto">
-              {/* Key Selection */}
-              <div>
-                <label className="mb-2 block text-sm font-bold uppercase tracking-wide">
-                  Key
-                </label>
-                <select 
-                  value={key}
-                  onChange={(e) => setKey(e.target.value)}
-                  className="w-full border-4 border-black bg-yellow-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  <option>C</option>
-                  <option>C#</option>
-                  <option>D</option>
-                  <option>D#</option>
-                  <option>E</option>
-                  <option>F</option>
-                  <option>F#</option>
-                  <option>G</option>
-                  <option>G#</option>
-                  <option>A</option>
-                  <option>A#</option>
-                  <option>B</option>
-                </select>
-              </div>
+              <div className="flex flex-row justify-stretch gap-x-5">
+                {/* Key Selection */}
+                <div className="grow">
+                  <label className="mb-2 block text-sm font-bold uppercase tracking-wide">
+                    Key
+                  </label>
+                  <select 
+                    value={key}
+                    onChange={(e) => setKey(e.target.value)}
+                    className="w-full border-4 border-black bg-yellow-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <option>C</option>
+                    <option>C#</option>
+                    <option>D</option>
+                    <option>D#</option>
+                    <option>E</option>
+                    <option>F</option>
+                    <option>F#</option>
+                    <option>G</option>
+                    <option>G#</option>
+                    <option>A</option>
+                    <option>A#</option>
+                    <option>B</option>
+                  </select>
+                </div>
 
-              {/* Modality Selection */}
-              <div>
-                <label className="mb-2 block text-sm font-bold uppercase tracking-wide">
-                  Modality
-                </label>
-                <select 
-                  value={modality}
-                  onChange={(e) => setModality(e.target.value)}
-                  className="w-full border-4 border-black bg-pink-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  <option>Major</option>
-                  <option>Minor</option>
-                  <option>Dorian</option>
-                  <option>Phrygian</option>
-                  <option>Lydian</option>
-                  <option>Mixolydian</option>
-                  <option>Aeolian</option>
-                  <option>Locrian</option>
-                </select>
+                {/* Modality Selection */}
+                <div className="grow">
+                  <label className="mb-2 block text-sm font-bold uppercase tracking-wide">
+                    Modality
+                  </label>
+                  <select 
+                    value={modality}
+                    onChange={(e) => setModality(e.target.value)}
+                    className="w-full border-4 border-black bg-pink-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <option>Major</option>
+                    <option>Minor</option>
+                    <option>Dorian</option>
+                    <option>Phrygian</option>
+                    <option>Lydian</option>
+                    <option>Mixolydian</option>
+                    <option>Aeolian</option>
+                    <option>Locrian</option>
+                  </select>
+                </div>
               </div>
-
               {/* Tempo */}
               <div>
                 <label className="mb-2 block text-sm font-bold uppercase tracking-wide">
@@ -148,6 +151,28 @@ export default function LeftPanel() {
                   max={240}
                   className="w-full border-4 border-black bg-blue-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                 />
+              </div>
+
+              {/* Time Signature */}
+              <div>
+                <label className="mb-2 block text-sm font-bold uppercase tracking-wide">
+                  Time Signature
+                </label>
+                <div className="flex gap-2">
+                  {["2/4", "3/4", "4/4", "5/4"].map((sig) => (
+                    <button
+                      key={sig}
+                      onClick={() => setTimeSignature(sig)}
+                      className={`flex-1 border-4 border-black px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+                        timeSignature === sig
+                          ? "bg-cyan-400 text-black"
+                          : "bg-white text-gray-700"
+                      }`}
+                    >
+                      {sig}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Description */}
