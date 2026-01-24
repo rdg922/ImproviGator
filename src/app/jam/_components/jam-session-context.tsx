@@ -118,9 +118,8 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   // Parse chords from Strudel code
   const parseChords = (code: string) => {
     // Match chord() with backticks, double quotes, or single quotes
-    const chordLineMatch = /let\s+chords\s*=\s*chord\(([`"])([^`"']+)\1\)/s.exec(
-      code,
-    );
+    const chordLineMatch =
+      /let\s+chords\s*=\s*chord\(([`"])([^`"']+)\1\)/s.exec(code);
     if (!chordLineMatch) return [];
 
     let rawContent = chordLineMatch[2] ?? "";
@@ -216,9 +215,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   };
 
   const addSavedChord = (chord: string) => {
-    setSavedChords((prev) =>
-      prev.includes(chord) ? prev : [...prev, chord],
-    );
+    setSavedChords((prev) => (prev.includes(chord) ? prev : [...prev, chord]));
   };
 
   const removeSavedChord = (chord: string) => {
