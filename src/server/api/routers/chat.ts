@@ -50,7 +50,9 @@ Suggestion 1 text here
 ---
 Suggestion 2 text here
 
-Keep suggestions short (5-10 words), natural, and relevant to the conversation. Examples: "Show me the G major scale", "Add more bass to the track", "What other chords work here?"`;
+Keep suggestions short (5-10 words), natural, and relevant to the conversation. 
+Suggestions should either be questions about music theory, or tasks to carry out written as commands.
+Examples: "Show me the G major scale", "Add more bass to the track", "What other chords work here?"`;
 
 // Tool declarations
 const EDIT_BACKING_TRACK_TOOL = {
