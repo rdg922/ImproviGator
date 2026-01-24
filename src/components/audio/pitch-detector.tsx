@@ -237,7 +237,6 @@ export default function PitchDetector() {
         </div>
       </div>
 
-
       <div style={{ marginBottom: "2rem" }}>
         <div style={{ marginBottom: "1rem" }}>
           <input
