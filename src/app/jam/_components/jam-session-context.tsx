@@ -17,6 +17,11 @@ interface Recording {
   timestamp: Date;
 }
 
+export interface SavedChord {
+  name: string;
+  voicingIndex: number;
+}
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -49,8 +54,9 @@ interface JamSessionContextType {
   setMidiData: (data: MidiNote[]) => void;
 
   // Saved chords
-  savedChords: string[];
-  addSavedChord: (chord: string) => void;
+  savedChords: SavedChord[];
+  addSavedChord: (chord: string, voicingIndex?: number) => void;
+  updateSavedChordVoicing: (chord: string, voicingIndex: number) => void;
   removeSavedChord: (chord: string) => void;
 
   // Generated strudel code
@@ -93,10 +99,10 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   const [timeSignature, setTimeSignature] = useState("4/4");
   const [recording, setRecording] = useState<Recording | null>(null);
   const [midiData, setMidiData] = useState<MidiNote[]>([]);
-  const [savedChords, setSavedChords] = useState<string[]>([
-    "Cmaj7",
-    "Am7",
-    "Dm7",
+  const [savedChords, setSavedChords] = useState<SavedChord[]>([
+    { name: "Cmaj7", voicingIndex: 0 },
+    { name: "Am7", voicingIndex: 0 },
+    { name: "Dm7", voicingIndex: 0 },
   ]);
   const [strudelCode, setStrudelCodeState] = useState(DEFAULT_STRUDEL_CODE);
   const [tracks, setTracks] = useState<TrackSetting[]>([]);
@@ -214,12 +220,24 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const addSavedChord = (chord: string) => {
-    setSavedChords((prev) => (prev.includes(chord) ? prev : [...prev, chord]));
+  const addSavedChord = (chord: string, voicingIndex = 0) => {
+    setSavedChords((prev) =>
+      prev.some((saved) => saved.name === chord)
+        ? prev
+        : [...prev, { name: chord, voicingIndex }],
+    );
+  };
+
+  const updateSavedChordVoicing = (chord: string, voicingIndex: number) => {
+    setSavedChords((prev) =>
+      prev.map((saved) =>
+        saved.name === chord ? { ...saved, voicingIndex } : saved,
+      ),
+    );
   };
 
   const removeSavedChord = (chord: string) => {
-    setSavedChords(savedChords.filter((c) => c !== chord));
+    setSavedChords((prev) => prev.filter((saved) => saved.name !== chord));
   };
 
   return (
@@ -239,6 +257,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
         setMidiData,
         savedChords,
         addSavedChord,
+        updateSavedChordVoicing,
         removeSavedChord,
         strudelCode,
         setStrudelCode,

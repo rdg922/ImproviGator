@@ -17,7 +17,7 @@ You can:
 
 When the user asks to make changes to the backing track, call the edit_backing_track tool.
 When the user asks to see a scale or show notes on the fretboard, call the show_scale tool.
-When the user asks to add or save a chord, call the add_chord tool.
+When the user asks to add or save a chord, call the add_chord tool. Chord voicings are available from chords-db; you can optionally set a 0-based voicingIndex.
 When the user asks a music theory question (like what scales/arpeggios fit), call the music_theory_query tool and if applicable show_scale and/or add_chords
 Always use the current backing track Strudel code and the session context when answering.
 
@@ -71,7 +71,7 @@ const SHOW_SCALE_TOOL = {
 const ADD_CHORD_TOOL = {
   name: "add_chord",
   description:
-    "Adds one or more chords to the saved chords list. Use this when the user wants to save or remember a chord for later use.",
+    "Adds one or more chords to the saved chords list. Use this when the user wants to save or remember a chord for later use. Optionally include voicingIndex (0-based) to choose a chord voicing from chords-db.",
   parameters: {
     type: Type.OBJECT,
     properties: {
@@ -87,6 +87,19 @@ const ADD_CHORD_TOOL = {
         },
         description:
           "A list of chord names to add in standard notation (e.g., [Cmaj7, Dm7, G7]).",
+      },
+      voicingIndex: {
+        type: Type.NUMBER,
+        description:
+          "Optional 0-based index for the chord voicing to use from chords-db (use 0 if unsure).",
+      },
+      voicingIndexes: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.NUMBER,
+        },
+        description:
+          "Optional list of 0-based voicing indexes aligned with the chords array.",
       },
     },
     required: [],
@@ -147,7 +160,7 @@ const normalizeScaleName = (name: string) =>
 export type ToolResult =
   | { type: "edit_backing_track"; newStrudelCode: string; explanation: string }
   | { type: "show_scale"; key: string; modality: string }
-  | { type: "add_chord"; chord: string };
+  | { type: "add_chord"; chord: string; voicingIndex?: number };
 
 const isFunctionCallPart = (
   part: ConversationPart,
@@ -254,10 +267,33 @@ const handleToolCalls = async (
               (item): item is string => typeof item === "string",
             )
           : [];
+        const voicingIndex =
+          typeof args.voicingIndex === "number" &&
+          Number.isFinite(args.voicingIndex)
+            ? Math.max(0, Math.floor(args.voicingIndex))
+            : undefined;
+        const voicingIndexes = Array.isArray(args.voicingIndexes)
+          ? args.voicingIndexes
+              .filter(
+                (value): value is number =>
+                  typeof value === "number" && Number.isFinite(value),
+              )
+              .map((value) => Math.max(0, Math.floor(value)))
+          : [];
         const requestedChords = [chord, ...chordList].filter(
           (item) => item.trim().length > 0,
         );
         const uniqueChords = Array.from(new Set(requestedChords));
+        const chordVoicingMap = new Map<string, number>();
+
+        requestedChords.forEach((name, index) => {
+          const fromArray = voicingIndexes[index];
+          const resolved =
+            typeof fromArray === "number" ? fromArray : voicingIndex;
+          if (typeof resolved === "number" && !chordVoicingMap.has(name)) {
+            chordVoicingMap.set(name, resolved);
+          }
+        });
 
         if (uniqueChords.length === 0) {
           response = {
@@ -273,7 +309,14 @@ const handleToolCalls = async (
               skippedChords.push(name);
             } else {
               addedChords.push(name);
-              toolResults.push({ type: "add_chord", chord: name });
+              const resolvedVoicing = chordVoicingMap.get(name);
+              toolResults.push({
+                type: "add_chord",
+                chord: name,
+                ...(typeof resolvedVoicing === "number"
+                  ? { voicingIndex: resolvedVoicing }
+                  : {}),
+              });
             }
           });
 
