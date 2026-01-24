@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import type { ReactNode, MutableRefObject } from "react";
 import { handleStrudel } from "~/services/handleStrudel";
+import { api } from "~/trpc/react";
+import type { AnalysisInput, AnalysisOutput } from "~/types/analysis";
 
 interface MidiNote {
   pitch: number;
@@ -32,6 +34,18 @@ export interface ConversationEntry {
   role: "user" | "model";
   parts: Array<{ text?: string }>;
 }
+
+type AnalysisMutation = {
+  mutateAsync: (input: AnalysisInput) => Promise<AnalysisOutput>;
+};
+
+type AnalysisApi = {
+  analysis: {
+    analyzeRecording: {
+      useMutation: () => AnalysisMutation;
+    };
+  };
+};
 interface TrackSetting {
   instrument: string;
   gain: number;
@@ -80,6 +94,11 @@ interface JamSessionContextType {
   setConversationHistory: React.Dispatch<
     React.SetStateAction<ConversationEntry[]>
   >;
+
+  // Analysis state
+  analysisResult: AnalysisOutput | null;
+  analysisStatus: "idle" | "loading" | "success" | "error";
+  runAnalysis: () => Promise<void>;
 }
 
 const JamSessionContext = createContext<JamSessionContextType | undefined>(
@@ -124,6 +143,16 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   const [conversationHistory, setConversationHistory] = useState<
     ConversationEntry[]
   >([]);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisOutput | null>(
+    null,
+  );
+  const [analysisStatus, setAnalysisStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+
+  const analysisMutation = (
+    api as unknown as AnalysisApi
+  ).analysis.analyzeRecording.useMutation();
 
   // Parse chords from Strudel code
   const parseChords = (code: string) => {
@@ -244,6 +273,34 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
     setSavedChords((prev) => prev.filter((saved) => saved.name !== chord));
   };
 
+  const runAnalysis = async () => {
+    if (analysisStatus === "loading") return;
+
+    if (midiData.length === 0 || parsedChords.length === 0) {
+      setAnalysisResult(null);
+      setAnalysisStatus("error");
+      return;
+    }
+
+    setAnalysisStatus("loading");
+
+    try {
+      const result = await analysisMutation.mutateAsync({
+        midiData,
+        parsedChords,
+        tempo,
+        timeSignature,
+        key,
+        modality,
+      });
+      setAnalysisResult(result);
+      setAnalysisStatus(result.success ? "success" : "error");
+    } catch (error) {
+      setAnalysisStatus("error");
+      console.error("Analysis error:", error);
+    }
+  };
+
   return (
     <JamSessionContext.Provider
       value={{
@@ -275,6 +332,9 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
         setChatMessages,
         conversationHistory,
         setConversationHistory,
+        analysisResult,
+        analysisStatus,
+        runAnalysis,
       }}
     >
       {children}
