@@ -4,6 +4,12 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import RightPanelGrid from "./right-panel/grid";
 import RightPanelRecording from "./right-panel/recording";
 import { useJamSession } from "./jam-session-context";
+import { useAudioRecorder } from "~/hooks/useAudioRecorder";
+import {
+  detectNotesFromAudio,
+  loadAudioFromBlob,
+  type PitchDetectionParams,
+} from "~/lib/audio/pitch-detection";
 import { StrudelMirror } from "@strudel/codemirror";
 import { evalScope } from "@strudel/core";
 import { transpiler } from "@strudel/transpiler";
@@ -26,6 +32,18 @@ const sanitizeStrudelCode = (code: string) => {
     return fenced[1].trim();
   }
   return trimmed;
+};
+
+const DEFAULT_PITCH_PARAMS: PitchDetectionParams = {
+  frameThreshold: 0.4,
+  onsetThreshold: 0.35,
+  minNoteLength: 8,
+};
+
+const FALLBACK_PITCH_PARAMS: PitchDetectionParams = {
+  frameThreshold: 0.25,
+  onsetThreshold: 0.25,
+  minNoteLength: 5,
 };
 
 const loadSamples = () => {
@@ -72,6 +90,7 @@ export default function RightPanel() {
     recording,
     setRecording,
     setMidiData,
+    midiData,
     parsedChords,
     strudelCode,
     strudelRef,
@@ -91,6 +110,11 @@ export default function RightPanel() {
     null,
   );
   const [isReady, setIsReady] = useState(false);
+  const {
+    isRecording: isMicRecording,
+    startRecording,
+    stopRecording,
+  } = useAudioRecorder();
   const containerRef = useRef<HTMLDivElement>(null);
   const countdownTimerRef = useRef<number | null>(null);
   const recordingTimeoutRef = useRef<number | null>(null);
@@ -311,21 +335,67 @@ export default function RightPanel() {
     );
   };
 
-  const simulateRecording = (durationOverride?: number) => {
-    const beatMs = getBeatDurationMs();
-    const barBeats = getBeatsPerBar();
-    const duration = durationOverride ?? beatMs * barBeats;
-    const simulatedRecording = {
-      notes: [
-        { pitch: 60, velocity: 80, startTime: 0, duration: beatMs },
-        { pitch: 64, velocity: 75, startTime: beatMs, duration: beatMs },
-        { pitch: 67, velocity: 70, startTime: beatMs * 2, duration: beatMs },
-      ],
-      duration,
-      timestamp: new Date(),
-    };
-    setRecording(simulatedRecording);
-    setMidiData(simulatedRecording.notes);
+  const startAudioCapture = async () => {
+    try {
+      setMidiData([]);
+      setRecording(null);
+      await startRecording();
+    } catch (err) {
+      console.error(
+        "Error starting audio recording:",
+        err instanceof Error ? err.message : err,
+      );
+    }
+  };
+
+  const stopAudioCapture = async (durationOverride?: number) => {
+    if (!isMicRecording) return;
+
+    try {
+      const audioBlob = await stopRecording();
+      const audioBuffer = await loadAudioFromBlob(audioBlob);
+      let detectedNotes = await detectNotesFromAudio(
+        audioBuffer,
+        DEFAULT_PITCH_PARAMS,
+      );
+      if (detectedNotes.length === 0) {
+        detectedNotes = await detectNotesFromAudio(
+          audioBuffer,
+          FALLBACK_PITCH_PARAMS,
+        );
+      }
+      const midiNotes = detectedNotes.map((note) => ({
+        pitch: Math.round(note.pitchMidi),
+        velocity: Math.max(
+          1,
+          Math.min(127, Math.round((note.amplitude || 0.6) * 127)),
+        ),
+        startTime: Math.max(0, Math.round(note.startTimeSeconds * 1000)),
+        duration: Math.max(1, Math.round(note.durationSeconds * 1000)),
+      }));
+      const duration =
+        durationOverride ?? Math.round(audioBuffer.duration * 1000);
+      const newRecording = {
+        notes: midiNotes,
+        duration,
+        timestamp: new Date(),
+      };
+      setRecording(newRecording);
+      setMidiData(midiNotes);
+    } catch (err) {
+      console.error(
+        "Error processing audio recording:",
+        err instanceof Error ? err.message : err,
+      );
+    }
+  };
+
+  const finalizeRecording = async (durationOverride?: number) => {
+    setIsRecording(false);
+    stopPlayback();
+    await stopAudioCapture(durationOverride);
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    await runAnalysis();
   };
 
   const startCountdown = (mode: "play" | "record") => {
@@ -349,12 +419,10 @@ export default function RightPanel() {
           setIsRecording(true);
           void startPlayback();
           const playthroughMs = getPlaythroughDurationMs();
-          simulateRecording(playthroughMs);
+          void startAudioCapture();
           clearRecordingTimeout();
           recordingTimeoutRef.current = window.setTimeout(() => {
-            setIsRecording(false);
-            stopPlayback();
-            void runAnalysis();
+            void finalizeRecording(playthroughMs);
           }, playthroughMs);
         }
       } else {
@@ -383,10 +451,8 @@ export default function RightPanel() {
 
   const handleRecord = () => {
     if (isRecording) {
-      setIsRecording(false);
       clearRecordingTimeout();
-      stopPlayback();
-      void runAnalysis();
+      void finalizeRecording();
       return;
     }
     setCurrentChordIndex(0);
@@ -482,16 +548,14 @@ export default function RightPanel() {
 
         <button
           onClick={handleToggleView}
-          disabled={
-            !recording || (analysisStatus === "loading" && view === "Grid")
-          }
+          disabled={!recording || analysisStatus === "loading"}
           className={`border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none ${
-            recording && !(analysisStatus === "loading" && view === "Grid")
+            recording && analysisStatus !== "loading"
               ? "bg-purple-400"
               : "bg-gray-300 text-gray-500"
           }`}
         >
-          {analysisStatus === "loading" && view === "Grid" ? (
+          {analysisStatus === "loading" ? (
             <span className="flex items-center gap-2">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
               Analyzing...

@@ -10,7 +10,9 @@ interface RightPanelRecordingProps {
   resetToken?: number;
 }
 
-export default function RightPanelRecording({ resetToken }: RightPanelRecordingProps) {
+export default function RightPanelRecording({
+  resetToken,
+}: RightPanelRecordingProps) {
   const { recording, midiData, analysisResult, analysisStatus } =
     useJamSession();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -39,7 +41,7 @@ export default function RightPanelRecording({ resetToken }: RightPanelRecordingP
   }, [recording]);
 
   const notes = useMemo(
-    () => (midiData.length ? midiData : recording?.notes ?? []),
+    () => (midiData.length ? midiData : (recording?.notes ?? [])),
     [midiData, recording],
   );
 
@@ -136,7 +138,7 @@ export default function RightPanelRecording({ resetToken }: RightPanelRecordingP
         MIDI Timeline
       </p>
       <div className="relative h-56 overflow-hidden rounded-lg border-4 border-black bg-white">
-        <div className="pointer-events-none absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 bg-red-500" />
+        {/* <div className="pointer-events-none absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 bg-red-500" /> */}
         <div
           ref={scrollRef}
           onScroll={handleScroll}
@@ -178,37 +180,37 @@ export default function RightPanelRecording({ resetToken }: RightPanelRecordingP
       </div>
 
       <div className="mt-6 rounded-lg border-4 border-black bg-gray-50 p-4 text-xs">
-        <p className="mb-2 text-xs font-bold uppercase text-gray-600">
+        <p className="mb-2 text-xs font-bold text-gray-600 uppercase">
           Debug: Take Overview Inputs
         </p>
         <div className="space-y-3 font-mono">
           <div>
             <p className="mb-1 font-bold">analysisStatus</p>
-            <pre className="whitespace-pre-wrap break-words">
+            <pre className="break-words whitespace-pre-wrap">
               {JSON.stringify(analysisStatus, null, 2)}
             </pre>
           </div>
           <div>
             <p className="mb-1 font-bold">analysisResult</p>
-            <pre className="whitespace-pre-wrap break-words">
+            <pre className="break-words whitespace-pre-wrap">
               {JSON.stringify(analysisResult, null, 2)}
             </pre>
           </div>
           <div>
             <p className="mb-1 font-bold">recording</p>
-            <pre className="whitespace-pre-wrap break-words">
+            <pre className="break-words whitespace-pre-wrap">
               {JSON.stringify(recording, null, 2)}
             </pre>
           </div>
           <div>
             <p className="mb-1 font-bold">midiData</p>
-            <pre className="whitespace-pre-wrap break-words">
+            <pre className="break-words whitespace-pre-wrap">
               {JSON.stringify(midiData, null, 2)}
             </pre>
           </div>
           <div>
             <p className="mb-1 font-bold">derivedStats</p>
-            <pre className="whitespace-pre-wrap break-words">
+            <pre className="break-words whitespace-pre-wrap">
               {JSON.stringify(
                 {
                   totalDurationMs,

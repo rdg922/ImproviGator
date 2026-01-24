@@ -243,6 +243,13 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
     setParsedChords(newChords);
   }, [strudelCode]);
 
+  useEffect(() => {
+    if (midiData.length > 0) return;
+    if (recording?.notes?.length) {
+      setMidiData(recording.notes);
+    }
+  }, [recording, midiData.length]);
+
   const setStrudelCode = (code: string) => {
     setStrudelCodeState(code);
   };
@@ -276,7 +283,10 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   const runAnalysis = async () => {
     if (analysisStatus === "loading") return;
 
-    if (midiData.length === 0 || parsedChords.length === 0) {
+    const effectiveMidiData =
+      midiData.length > 0 ? midiData : recording?.notes ?? [];
+
+    if (effectiveMidiData.length === 0 || parsedChords.length === 0) {
       setAnalysisResult(null);
       setAnalysisStatus("error");
       return;
@@ -286,7 +296,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
 
     try {
       const result = await analysisMutation.mutateAsync({
-        midiData,
+        midiData: effectiveMidiData,
         parsedChords,
         tempo,
         timeSignature,
