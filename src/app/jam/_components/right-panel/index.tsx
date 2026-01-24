@@ -90,6 +90,7 @@ export default function RightPanel() {
     recording,
     setRecording,
     setMidiData,
+    midiData,
     parsedChords,
     strudelCode,
     strudelRef,
@@ -319,8 +320,6 @@ export default function RightPanel() {
   };
 
   const stopAudioCapture = async (durationOverride?: number) => {
-    if (!isMicRecording) return;
-
     try {
       const audioBlob = await stopRecording();
       const audioUrl = URL.createObjectURL(audioBlob);
@@ -354,20 +353,25 @@ export default function RightPanel() {
       };
       setRecording(newRecording);
       setMidiData(midiNotes);
+      return midiNotes;
     } catch (err) {
       console.error(
         "Error processing audio recording:",
         err instanceof Error ? err.message : err,
       );
     }
+    return undefined;
   };
 
   const finalizeRecording = async (durationOverride?: number) => {
     setIsRecording(false);
     stopPlayback();
-    await stopAudioCapture(durationOverride);
+    const midiNotes = await stopAudioCapture(durationOverride);
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
-    await runAnalysis();
+    const fallbackNotes = recording?.notes ?? midiData;
+    const effectiveNotes =
+      midiNotes && midiNotes.length > 0 ? midiNotes : fallbackNotes;
+    await runAnalysis({ midiData: effectiveNotes });
   };
 
   const startCountdown = (mode: "play" | "record") => {
@@ -497,7 +501,7 @@ export default function RightPanel() {
         {view !== "Recording" && (
           <button
             onClick={handleReset}
-            className="border-4 border-black bg-orange-300 px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none"
+            className="border-4 border-black bg-orange-300 px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-0.75 hover:translate-y-0.75 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1.5 active:translate-y-1.5 active:shadow-none"
           >
             ⏮ Reset
           </button>
@@ -510,7 +514,7 @@ export default function RightPanel() {
               ? !hasRecordingAudio
               : !isReady || !strudelCode || countdownMode !== null
           }
-          className={`border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 ${
+          className={`border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-0.75 hover:translate-y-0.75 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1.5 active:translate-y-1.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 ${
             view === "Recording"
               ? isTakePlaying
                 ? "bg-red-400"
@@ -532,7 +536,7 @@ export default function RightPanel() {
         <button
           onClick={handleRecord}
           disabled={countdownMode !== null}
-          className={`border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none ${
+          className={`border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-0.75 hover:translate-y-0.75 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1.5 active:translate-y-1.5 active:shadow-none ${
             isRecording ? "bg-red-500" : "bg-blue-400"
           }`}
         >
@@ -542,7 +546,7 @@ export default function RightPanel() {
         <button
           onClick={handleToggleView}
           disabled={!recording || analysisStatus === "loading"}
-          className={`border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none ${
+          className={`border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-0.75 hover:translate-y-0.75 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1.5 active:translate-y-1.5 active:shadow-none ${
             recording && analysisStatus !== "loading"
               ? "bg-purple-400"
               : "bg-gray-300 text-gray-500"
