@@ -13,7 +13,7 @@ import type { AnalysisToolResult } from "~/types/analysis";
 
 const MAX_GEMINI_ATTEMPTS = 3;
 
-const ANALYSIS_SYSTEM_INSTRUCTION = `You are a concise music improvisation coach. Use the analysis summary to suggest improvements. When chord-specific alternatives are needed, call the appropriate tools to fetch chord tones or chord-scale options. Keep the response short and actionable.`;
+const ANALYSIS_SYSTEM_INSTRUCTION = `You are a friendly, human-sounding improvisation coach. Start with a high-level overview of how the solo went (e.g., sparse vs full, in-key vs out-of-key, strong/weak resolution). Then highlight 2–3 concrete places to begin improving and invite the user to ask questions. When chord-specific alternatives are needed, call the appropriate tools to fetch chord tones or chord-scale options. Keep the response short, clear, and encouraging.`;
 
 const RECOMMEND_CHORD_TONES_TOOL = {
   name: "recommend_chord_tones",
@@ -269,7 +269,7 @@ const summarizeAnalysis = async (input: {
   };
 };
 
-export const analysisRouter = createTRPCRouter({
+const analysisRouter = createTRPCRouter({
   analyzeRecording: publicProcedure
     .input(
       z.object({
@@ -332,3 +332,5 @@ export const analysisRouter = createTRPCRouter({
       };
     }),
 });
+
+export { analyzeRecording } from "~/services/analysisService";

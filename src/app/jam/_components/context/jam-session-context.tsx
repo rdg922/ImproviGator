@@ -25,9 +25,11 @@ export interface SavedChord {
 }
 
 export interface ChatMessage {
+  id?: string;
   role: "user" | "assistant";
   content: string;
   suggestedChords?: Array<{ chord: string; voicingIndex?: number }>;
+  isThinking?: boolean;
   suggestedResponses?: string[];
 }
 
@@ -43,7 +45,7 @@ type AnalysisMutation = {
 };
 
 type AnalysisApi = {
-  analysis: {
+  chat: {
     analyzeRecording: {
       useMutation: () => AnalysisMutation;
     };
@@ -157,7 +159,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
 
   const analysisMutation = (
     api as unknown as AnalysisApi
-  ).analysis.analyzeRecording.useMutation();
+  ).chat.analyzeRecording.useMutation();
 
   // Parse chords from Strudel code
   const parseChords = (code: string) => {

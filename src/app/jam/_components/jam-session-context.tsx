@@ -25,9 +25,11 @@ export interface SavedChord {
 }
 
 export interface ChatMessage {
+  id?: string;
   role: "user" | "assistant";
   content: string;
   suggestedChords?: Array<{ chord: string; voicingIndex?: number }>;
+  isThinking?: boolean;
 }
 
 export interface ConversationEntry {
@@ -40,7 +42,7 @@ type AnalysisMutation = {
 };
 
 type AnalysisApi = {
-  analysis: {
+  chat: {
     analyzeRecording: {
       useMutation: () => AnalysisMutation;
     };
@@ -79,7 +81,7 @@ interface JamSessionContextType {
   tracks: TrackSetting[];
   setTrackGain: (instrument: string, gain: number) => Promise<void>;
   parsedChords: Array<{ chord: string | string[]; index: number }>;
-  
+
   // Shared Strudel player reference
   strudelRef: MutableRefObject<any>;
 
@@ -152,13 +154,14 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
 
   const analysisMutation = (
     api as unknown as AnalysisApi
-  ).analysis.analyzeRecording.useMutation();
+  ).chat.analyzeRecording.useMutation();
 
   // Parse chords from Strudel code
   const parseChords = (code: string) => {
     // Match chord() with any variable name, using backticks, double quotes, or single quotes
-    const chordLineMatch =
-      /let\s+\w+\s*=\s*chord\(([`"])([^`"']+)\1\)/s.exec(code);
+    const chordLineMatch = /let\s+\w+\s*=\s*chord\(([`"])([^`"']+)\1\)/s.exec(
+      code,
+    );
     if (!chordLineMatch) return [];
 
     let rawContent = chordLineMatch[2] ?? "";
@@ -257,7 +260,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   const setTrackGain = async (instrument: string, gain: number) => {
     const newCode = handleStrudel.set_gain(strudelCode, instrument, gain);
     setStrudelCodeState(newCode);
-    
+
     // Update the live player if it exists and is playing
     if (strudelRef.current) {
       try {
@@ -294,7 +297,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
     if (analysisStatus === "loading") return;
 
     const effectiveMidiData =
-      midiData.length > 0 ? midiData : recording?.notes ?? [];
+      midiData.length > 0 ? midiData : (recording?.notes ?? []);
 
     if (effectiveMidiData.length === 0 || parsedChords.length === 0) {
       setAnalysisResult(null);
