@@ -61,7 +61,7 @@ interface JamSessionContextType {
   parsedChords: Array<{ chord: string | string[]; index: number }>;
   
   // Shared Strudel player reference
-  strudelPlayerRef: MutableRefObject<any>;
+  strudelRef: MutableRefObject<any>;
 
   // Description/prompt
   description: string;
@@ -90,7 +90,7 @@ $: chords.struct("- x - x").voicing().room(.5)
 $: n("0 - 1 -").set(chords).mode("root:g2").voicing()`;
 
 export function JamSessionProvider({ children }: { children: ReactNode }) {
-  const strudelPlayerRef = useRef<any>(null);
+  const strudelRef = useRef<any>(null);
   const [key, setKey] = useState("C");
   const [modality, setModality] = useState("Major");
   const [tempo, setTempo] = useState(120);
@@ -248,7 +248,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
         tracks,
         setTrackGain,
         parsedChords,
-        strudelPlayerRef,
+        strudelRef,
         description,
         setDescription,
         chatMessages,

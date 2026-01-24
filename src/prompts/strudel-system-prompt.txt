@@ -42,7 +42,7 @@ Note about strudel:
 chords will never have 'maj' or 'min' in them, only M, ^, m or -
 sawtooth is not a valid function()! if you want to change the way a sound works use the .s() method instead
 "guitar" is not a Sound
-.piano() is not a method, do use .s("piano")
+**.piano() is not a method, do use .s("piano") or .piano()**
 "gm_acoustic_piano" is not a valid instrument.
 if asked for a solo, make the rhythm and number of notes in a beat vary. If adding effects to the solo, add an lpf of 1500 and room effect of 0.6, and add a gain of 2.
 Songs should never have more than 16 bars. This means that there should not be more than 16 measures in the song. One bar means one measure when generating music.

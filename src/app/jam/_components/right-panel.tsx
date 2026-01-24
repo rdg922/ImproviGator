@@ -59,7 +59,7 @@ const ensureAudioReady = () => {
 };
 
 export default function RightPanel() {
-  const { recording, setRecording, setMidiData, parsedChords, strudelCode, strudelPlayerRef } =
+  const { recording, setRecording, setMidiData, parsedChords, strudelCode, strudelRef } =
     useJamSession();
 
   const [view, setView] = useState<RightView>("Grid");
@@ -78,7 +78,7 @@ export default function RightPanel() {
 
   // Initialize Strudel evaluator
   useEffect(() => {
-    if (!containerRef.current || strudelPlayerRef.current) return;
+    if (!containerRef.current || strudelRef.current) return;
 
     const editor = new StrudelMirror({
       root: containerRef.current,
@@ -92,14 +92,14 @@ export default function RightPanel() {
       },
     });
 
-    strudelPlayerRef.current = editor;
+    strudelRef.current = editor;
 
     return () => {
       editor.stop?.();
       editor.clear?.();
-      strudelPlayerRef.current = null;
+      strudelRef.current = null;
     };
-  }, [strudelPlayerRef]);
+  }, [strudelRef]);
 
   const highlightedChordIndex = useMemo(() => {
     const sliceCount = parsedChords.length;
@@ -123,22 +123,22 @@ export default function RightPanel() {
 
   const handleReset = () => {
     setCurrentChordIndex(0);
-    if (strudelPlayerRef.current) {
-      strudelPlayerRef.current.stop?.();
+    if (strudelRef.current) {
+      strudelRef.current.stop?.();
     }
     setIsPlaying(false);
   };
 
   const handlePlay = async () => {
-    if (!isReady || !strudelCode || !strudelPlayerRef.current) return;
+    if (!isReady || !strudelCode || !strudelRef.current) return;
 
     if (isPlaying) {
-      strudelPlayerRef.current.stop?.();
+      strudelRef.current.stop?.();
       setIsPlaying(false);
     } else {
       try {
-        await strudelPlayerRef.current.setCode?.(strudelCode);
-        await strudelPlayerRef.current.evaluate();
+        await strudelRef.current.setCode?.(strudelCode);
+        await strudelRef.current.evaluate();
         // isPlaying will be set by onToggle callback
       } catch (err) {
         console.error("Error playing Strudel:", err);

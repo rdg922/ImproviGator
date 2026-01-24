@@ -24,7 +24,7 @@ const formatInstrumentLabel = (instrument: string) => {
 };
 
 export default function TrackSettingsPanel() {
-  const { strudelCode, setStrudelCode, tracks, setTrackGain, strudelPlayerRef } = useJamSession();
+  const { strudelCode, setStrudelCode, tracks, setTrackGain, strudelRef } = useJamSession();
   const [mode, setMode] = useState<PanelMode>("volume");
   const [localCode, setLocalCode] = useState(strudelCode);
 
@@ -40,10 +40,10 @@ export default function TrackSettingsPanel() {
     setStrudelCode(localCode);
     
     // Update the playing Strudel instance if it exists
-    if (strudelPlayerRef.current) {
+    if (strudelRef.current) {
       try {
-        await strudelPlayerRef.current.setCode?.(localCode);
-        await strudelPlayerRef.current.evaluate();
+        await strudelRef.current.setCode?.(localCode);
+        await strudelRef.current.evaluate();
       } catch (err) {
         console.error("Error updating Strudel code:", err);
       }
