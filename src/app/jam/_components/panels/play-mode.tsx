@@ -24,7 +24,7 @@ export default function PlayMode() {
     { chord1: "Am7", chord2: null },
     { chord1: "Dm7", chord2: "G7" },
     { chord1: "G7", chord2: null },
-    { chord1: "Cmaj7", chord2: null }
+    { chord1: "Cmaj7", chord2: null },
   ];
 
   const handlePlay = () => {
@@ -41,11 +41,11 @@ export default function PlayMode() {
       <div className="w-1/3">
         <div className="flex h-full flex-col border-4 border-black bg-white p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
           <h2 className="mb-3 text-2xl font-black">Setup</h2>
-          
+
           <div className="flex-1 space-y-4 overflow-y-auto">
             {/* Key Selection */}
             <div>
-              <label className="mb-2 block text-sm font-bold uppercase tracking-wide">
+              <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
                 Key
               </label>
               <select className="w-full border-4 border-black bg-yellow-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
@@ -66,7 +66,7 @@ export default function PlayMode() {
 
             {/* Modality Selection */}
             <div>
-              <label className="mb-2 block text-sm font-bold uppercase tracking-wide">
+              <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
                 Modality
               </label>
               <select className="w-full border-4 border-black bg-pink-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
@@ -83,7 +83,7 @@ export default function PlayMode() {
 
             {/* Tempo */}
             <div>
-              <label className="mb-2 block text-sm font-bold uppercase tracking-wide">
+              <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
                 Tempo (BPM)
               </label>
               <input
@@ -94,16 +94,16 @@ export default function PlayMode() {
                 className="w-full border-4 border-black bg-blue-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               />
             </div>
-            
+
             {/* Description */}
             <div>
-              <label className="mb-2 block text-sm font-bold uppercase tracking-wide">
+              <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
                 Description (genre, mood, etc.)
               </label>
               <textarea
                 rows={3}
                 placeholder="e.g., Jazzy, upbeat, latin vibes..."
-                className="w-full border-4 border-black bg-green-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-0"
+                className="w-full border-4 border-black bg-green-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:ring-0 focus:outline-none"
               ></textarea>
             </div>
 
@@ -123,10 +123,8 @@ export default function PlayMode() {
             {chords.map((chordData, index) => (
               <div
                 key={index}
-                className={`flex border-b-4 border-r-4 border-black transition-all last:border-r-0 [&:nth-child(4n)]:border-r-0 [&:nth-last-child(-n+4)]:border-b-0 ${
-                  index === currentChordIndex
-                    ? "bg-yellow-300"
-                    : "bg-white"
+                className={`flex border-r-4 border-b-4 border-black transition-all last:border-r-0 [&:nth-child(4n)]:border-r-0 [&:nth-last-child(-n+4)]:border-b-0 ${
+                  index === currentChordIndex ? "bg-yellow-300" : "bg-white"
                 }`}
               >
                 {chordData.chord2 ? (

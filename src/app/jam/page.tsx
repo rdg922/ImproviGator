@@ -1,10 +1,10 @@
 "use client";
 
-import LeftPanel from "./_components/left-panel";
-import RightPanel from "./_components/right-panel";
-import SavedChords from "./_components/saved-chords";
-import ScaleDiagram from "./_components/scale-diagram";
-import { JamSessionProvider } from "./_components/jam-session-context";
+import LeftPanel from "./_components/panels/left-panel";
+import RightPanel from "./_components/right-panel/index";
+import SavedChords from "./_components/chords/saved-chords";
+import ScaleDiagram from "./_components/visuals/scale-diagram";
+import { JamSessionProvider } from "./_components/context/jam-session-context";
 
 export default function JamPage() {
   return (

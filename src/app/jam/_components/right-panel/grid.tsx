@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useJamSession } from "../jam-session-context";
+import { useJamSession } from "../context/jam-session-context";
 
 type RightPanelGridProps = {
   highlightedIndex: number;

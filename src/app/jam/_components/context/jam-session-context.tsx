@@ -79,7 +79,7 @@ interface JamSessionContextType {
   tracks: TrackSetting[];
   setTrackGain: (instrument: string, gain: number) => Promise<void>;
   parsedChords: Array<{ chord: string | string[]; index: number }>;
-  
+
   // Shared Strudel player reference
   strudelRef: MutableRefObject<any>;
 
@@ -294,7 +294,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
     if (analysisStatus === "loading") return;
 
     const effectiveMidiData =
-      midiData.length > 0 ? midiData : recording?.notes ?? [];
+      midiData.length > 0 ? midiData : (recording?.notes ?? []);
 
     if (effectiveMidiData.length === 0 || parsedChords.length === 0) {
       setAnalysisResult(null);

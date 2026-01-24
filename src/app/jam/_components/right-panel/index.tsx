@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import RightPanelGrid from "./right-panel/grid";
-import RightPanelRecording from "./right-panel/recording";
-import { useJamSession } from "./jam-session-context";
+import RightPanelGrid from "./grid";
+import RightPanelRecording from "./recording";
+import { useJamSession } from "../context/jam-session-context";
 import { useAudioRecorder } from "~/hooks/useAudioRecorder";
 import {
   detectNotesFromAudio,

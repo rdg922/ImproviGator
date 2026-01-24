@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useJamSession } from "./jam-session-context";
+import { useJamSession } from "../context/jam-session-context";
 
 const SLIDER_MIN = .1;
 const SLIDER_MAX = 1;
@@ -24,7 +24,8 @@ const formatInstrumentLabel = (instrument: string) => {
 };
 
 export default function TrackSettingsPanel() {
-  const { strudelCode, setStrudelCode, tracks, setTrackGain, strudelRef } = useJamSession();
+  const { strudelCode, setStrudelCode, tracks, setTrackGain, strudelRef } =
+    useJamSession();
   const [mode, setMode] = useState<PanelMode>("volume");
   const [localCode, setLocalCode] = useState(strudelCode);
 
@@ -38,7 +39,7 @@ export default function TrackSettingsPanel() {
 
   const handleApplyCode = async () => {
     setStrudelCode(localCode);
-    
+
     // Update the playing Strudel instance if it exists
     if (strudelRef.current) {
       try {
@@ -106,7 +107,7 @@ export default function TrackSettingsPanel() {
             value={localCode}
             onChange={(e) => setLocalCode(e.target.value)}
             placeholder="// Edit Strudel code here..."
-            className="flex-1 border-4 border-black bg-gray-50 px-4 py-3 font-mono text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-0"
+            className="flex-1 border-4 border-black bg-gray-50 px-4 py-3 font-mono text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:ring-0 focus:outline-none"
           />
           <button
             onClick={handleApplyCode}

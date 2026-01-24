@@ -3,7 +3,7 @@
 import Chord from "~/app/_components/react-chords/react-chords/src/Chord";
 import { Chord as TonalChord } from "tonal";
 import guitarDb from "~/app/_components/chords-db/lib/guitar.json";
-import { useJamSession } from "./jam-session-context";
+import { useJamSession } from "../context/jam-session-context";
 
 const GUITAR_INSTRUMENT = {
   strings: 6,
