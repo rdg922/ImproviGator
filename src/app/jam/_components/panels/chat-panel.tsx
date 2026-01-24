@@ -40,8 +40,17 @@ export default function ChatPanel() {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const lastAutoAnalysisRef = useRef<string | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const chatMutation = api.chat.sendMessage.useMutation();
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop =
+        scrollContainerRef.current.scrollHeight;
+    }
+  }, [chatMessages, isLoading]);
 
   const normalizeHistory = (history: unknown): ConversationEntry[] => {
     if (!Array.isArray(history)) {
@@ -338,9 +347,26 @@ export default function ChatPanel() {
     addSavedChord(chord, voicingIndex);
   };
 
+  const renderMessageContent = (content: string) => {
+    const parts = content.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return (
+          <strong key={index} className="font-black">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 space-y-3 overflow-y-auto p-4"
+      >
         {chatMessages.map((message, index) => (
           <div key={`${message.role}-${index}`}>
             <div
@@ -353,7 +379,7 @@ export default function ChatPanel() {
                   message.role === "user" ? "bg-blue-300" : "bg-green-300"
                 }`}
               >
-                {message.content}
+                {renderMessageContent(message.content)}
               </div>
             </div>
             {message.suggestedChords && message.suggestedChords.length > 0 && (
