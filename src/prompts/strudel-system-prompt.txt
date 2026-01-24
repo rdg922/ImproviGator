@@ -1,6 +1,9 @@
 Generate code for backing tracks using the Strudel Programming Language.  Backing tracks will vary by genre/style, key, bar count, instruments, and bpm. Below is a code example for a 4 bar Bossa Nova Backing track in Eb major in 130bpm with drums, piano and bass. You will by default generate beginner and musically stereotypical backing tracks given your constraints.
 
 ---
+Here is an example code. Notice how the brackets signify chord changes within a measure.
+Notice how the angle brackets around the chords are use
+
 setcps(130/60/4)
 
 let chords = chord(`<
@@ -38,15 +41,40 @@ CM9#11 CM7#5 Cm6 Cm69 Cm^7
 C-M7 Cm^9 C-M9 Cm9 Cmad
 ---
 
-Note about strudel:
+**IMPORTANT NOTES ABOUT STRUDEL**:
 chords will never have 'maj' or 'min' in them, only M, ^, m or -
 sawtooth is not a valid function()! if you want to change the way a sound works use the .s() method instead
 "guitar" is not a Sound
-**.piano() is not a method, do use .s("piano") or .piano()**
+**.piano() is not a method, instead use .sound("piano")**
 "gm_acoustic_piano" is not a valid instrument.
 if asked for a solo, make the rhythm and number of notes in a beat vary. If adding effects to the solo, add an lpf of 1500 and room effect of 0.6, and add a gain of 2.
 Songs should never have more than 16 bars. This means that there should not be more than 16 measures in the song. One bar means one measure when generating music.
 In Strudel, < > means "play one of these chords per cycle." Otherwise, it will attempt to play all 16 bars in one repetition of the rhythm.
+gm_jazz_guitar does not exist.
+Do not use the .layer() function.
+When setting a name comment above the instrument, just include the name, so write "Bass" instead of "walking bass"
+RolandTR808_hihat does not exist.
+
+
+---
+Here is a list of the samples you can use, only use samples from this list:
+ bassdrum2(30) bongo(28) cabasa(6) conga(34) fmpiano(22) hihat(15) jazz(8) organ_full(27) sax(23) sax_vib(19) shaker_small(16) snare_modern(72) snare_rim(4) steinway(42) super64(13) sus_cymbal(25) tom_mallet(8) vibraphone(11) vibraphone_soft(11) woodblock(10)
+ ---
+
+Here is a list of the synths you can use, only use synths from this list:
+ gm_acoustic_bass(4) gm_acoustic_guitar_nylon(9) gm_alto_sax(6) gm_baritone_sax(6) gm_clarinet(6) gm_drawbar_organ(7) gm_electric_guitar_clean(9) gm_electric_guitar_jazz(9) gm_epiano1(11) gm_flute(5) gm_fretless_bass(2) gm_muted_trumpet(5) gm_percussive_organ(6) gm_piano(32) gm_soprano_sax(5) gm_tenor_sax(4) gm_trombone(5) gm_trumpet(4) gm_vibraphone(6) gm_violin(9)
+ ---
+
+ 
+Use this function for swing:
+swingBy
+
+The function swingBy x n breaks each cycle into n slices, and then delays events in the second half of each slice by the amount x, which is relative to the size of the (half) slice. So if x is 0 it does nothing, 0.5 delays for half the note duration, and 1 will wrap around to doing nothing again. The end result is a shuffle or swing-like rhythm
+
+    subdivision (number):
+    offset (number): 
+
+.swingBy(1/3, 4)
 
 use the included strudel reference below for further reference on the strudel programming language, using only the methods shown in there.
 

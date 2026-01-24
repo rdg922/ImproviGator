@@ -21,8 +21,7 @@ const STRUDEL_DOCS = fs.readFileSync(
   "utf-8",
 );
 
-const SYSTEM_INSTRUCTION = `${STRUDEL_PROMPT}\n\n## Strudel Documentation Reference:\n\n${STRUDEL_DOCS}\n\n## Validation Requirement:\nAlways call the \"validate_strudel_code\" tool with the full Strudel program before you present any output. Only return Strudel code that passes validation (transpiles and evaluates without errors). If validation fails, fix the code or explain why it cannot be fixed.`;
-
+const SYSTEM_INSTRUCTION = `IMPORTANT: ${STRUDEL_PROMPT}\n\n ## Strudel Documentation Reference:\n\n${STRUDEL_DOCS}\n\n## Validation Requirement:\nAlways call the \"validate_strudel_code\" tool with the full Strudel program before you present any output. Only return Strudel code that passes validation (transpiles and evaluates without errors). If validation fails, fix the code or explain why it cannot be fixed.`;
 const MAX_GEMINI_ATTEMPTS = 5;
 
 const VALIDATE_STRUDEL_FUNCTION_DECLARATION = {
@@ -233,7 +232,7 @@ async function callGeminiAPI(prompt: string): Promise<string> {
     logGeminiAttempt(attempt, "-> request", lastMessage);
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-flash-preview",
       contents: conversation,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,

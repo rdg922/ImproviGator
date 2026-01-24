@@ -63,7 +63,7 @@ interface JamSessionContextType {
   strudelCode: string;
   setStrudelCode: (code: string) => void;
   tracks: TrackSetting[];
-  setTrackGain: (instrument: string, gain: number) => void;
+  setTrackGain: (instrument: string, gain: number) => Promise<void>;
   parsedChords: Array<{ chord: string | string[]; index: number }>;
   
   // Shared Strudel player reference
@@ -127,9 +127,9 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
 
   // Parse chords from Strudel code
   const parseChords = (code: string) => {
-    // Match chord() with backticks, double quotes, or single quotes
+    // Match chord() with any variable name, using backticks, double quotes, or single quotes
     const chordLineMatch =
-      /let\s+chords\s*=\s*chord\(([`"])([^`"']+)\1\)/s.exec(code);
+      /let\s+\w+\s*=\s*chord\(([`"])([^`"']+)\1\)/s.exec(code);
     if (!chordLineMatch) return [];
 
     let rawContent = chordLineMatch[2] ?? "";
@@ -218,10 +218,20 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
     setStrudelCodeState(code);
   };
 
-  const setTrackGain = (instrument: string, gain: number) => {
-    setStrudelCodeState((prev) =>
-      handleStrudel.set_gain(prev, instrument, gain),
-    );
+  const setTrackGain = async (instrument: string, gain: number) => {
+    const newCode = handleStrudel.set_gain(strudelCode, instrument, gain);
+    setStrudelCodeState(newCode);
+    
+    // Update the live player if it exists and is playing
+    if (strudelRef.current) {
+      try {
+        await strudelRef.current.setCode?.(newCode);
+        // Only re-evaluate to apply the gain change
+        await strudelRef.current.evaluate?.();
+      } catch (err) {
+        console.error("Error updating gain:", err);
+      }
+    }
   };
 
   const addSavedChord = (chord: string, voicingIndex = 0) => {
