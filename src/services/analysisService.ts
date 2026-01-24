@@ -1,57 +1,22 @@
-import { GoogleGenAI, Type, type Content, type Part } from "@google/genai";
+import { GoogleGenAI, type Content, type Part } from "@google/genai";
 import { env } from "~/env";
-import {
-  analyzeHarmonicContext,
-  buildChordScaleRecommendation,
-  buildChordToneRecommendation,
-  type MidiNoteEvent,
-  type ParsedChordToken,
-} from "~/lib/audio/harmonic-analysis";
-import type { AnalysisInput, AnalysisOutput, AnalysisToolResult } from "~/types/analysis";
+import { analyzeHarmonicContext } from "~/lib/audio/harmonic-analysis";
+import { Chord, Note, Scale } from "tonal";
+import type { AnalysisInput, AnalysisOutput } from "~/types/analysis";
 
 const MAX_GEMINI_ATTEMPTS = 3;
 
-const ANALYSIS_PROMPT_INSTRUCTION = `You are a friendly, human-sounding improvisation coach. Start with a high-level overview of how the solo went (e.g., sparse vs full, in-key vs out-of-key, strong/weak resolution). Then highlight 2–3 concrete places to begin improving and invite the user to ask questions. When chord-specific alternatives are needed, call the appropriate tools to fetch chord tones or chord-scale options. Keep the response short, clear, and encouraging.`;
+const ANALYSIS_PROMPT_INSTRUCTION = `You are a friendly, human-sounding improvisation coach.
 
-const RECOMMEND_CHORD_TONES_TOOL = {
-  name: "recommend_chord_tones",
-  description:
-    "Return chord tones and a short recommendation for emphasizing arpeggio targets.",
-  parameters: {
-    type: Type.OBJECT,
-    properties: {
-      chord: {
-        type: Type.STRING,
-        description: "Chord symbol (e.g., Dm7, G7, Cmaj7).",
-      },
-    },
-    required: ["chord"] as string[],
-  },
-};
+Output format (Markdown only):
+- Start with **Overview** (1–2 sentences). Include concrete values from the provided metrics (e.g., note count, in-key/out-of-key ratio, small-step vs leap balance). If detected scales/arpeggios are present, mention them.
+- Then a **Focus Areas** section with 2–3 bullet points.
+- End with **Next Steps** and ask exactly ONE clarifying question. Offer an alternative scale or arpeggio if possible.
 
-const RECOMMEND_CHORD_SCALE_TOOL = {
-  name: "recommend_chord_scale",
-  description:
-    "Return a chord-scale suggestion and notes based on chord quality and key.",
-  parameters: {
-    type: Type.OBJECT,
-    properties: {
-      chord: {
-        type: Type.STRING,
-        description: "Chord symbol (e.g., Dm7, G7, Cmaj7).",
-      },
-      key: {
-        type: Type.STRING,
-        description: "Session key (e.g., C, D#, Bb).",
-      },
-      modality: {
-        type: Type.STRING,
-        description: "Session modality (e.g., Major, Dorian, Mixolydian).",
-      },
-    },
-    required: ["chord"] as string[],
-  },
-};
+Rules:
+- Use only the provided numbers/labels. Do not include placeholders or tool-call text.
+- Do not mention tools or write call_tool(...) text.
+- Keep it short and encouraging.`;
 
 type ConversationEntry = Content;
 
@@ -61,11 +26,6 @@ const createUserPrompt = (prompt: string): ConversationEntry => ({
   role: "user",
   parts: [{ text: prompt }],
 });
-
-const cloneContent = (content?: ConversationEntry) =>
-  content
-    ? (JSON.parse(JSON.stringify(content)) as ConversationEntry)
-    : undefined;
 
 const extractTextFromParts = (parts?: ConversationPart[]) => {
   if (!parts?.length) {
@@ -79,186 +39,46 @@ const extractTextFromParts = (parts?: ConversationPart[]) => {
     .trim();
 };
 
-const isFunctionCallPart = (
-  part: ConversationPart,
-): part is ConversationPart & {
-  functionCall: { name?: string; args?: Record<string, unknown> };
-} => typeof part.functionCall === "object" && part.functionCall !== null;
-
-const handleToolCalls = async (
-  conversation: ConversationEntry[],
-  candidateContent: ConversationEntry | undefined,
-  context: { key: string; modality: string },
-): Promise<{ handled: boolean; toolResults: AnalysisToolResult[] }> => {
-  const functionCallParts =
-    candidateContent?.parts?.filter(isFunctionCallPart) ?? [];
-
-  if (!functionCallParts.length) {
-    return { handled: false, toolResults: [] };
-  }
-
-  const functionResponseParts: ConversationPart[] = [];
-  const toolResults: AnalysisToolResult[] = [];
-
-  for (const part of functionCallParts) {
-    const functionCall = part.functionCall;
-    const functionName = functionCall.name;
-    const args = functionCall.args ?? {};
-
-    let response: Record<string, unknown> = { success: false };
-
-    switch (functionName) {
-      case RECOMMEND_CHORD_TONES_TOOL.name: {
-        const chord = typeof args.chord === "string" ? args.chord : "";
-        if (!chord) {
-          response = { success: false, error: "Missing chord." };
-          break;
-        }
-
-        const recommendation = buildChordToneRecommendation(chord);
-        const suggestion = `Emphasize chord tones (${recommendation.chordTones.join(
-          ", ",
-        )}) on strong beats to outline ${recommendation.symbol}.`;
-
-        response = {
-          success: true,
-          chord: recommendation.symbol,
-          chordTones: recommendation.chordTones,
-          suggestion,
-        };
-
-        toolResults.push({
-          type: "chord_tone_recommendation",
-          chord: recommendation.symbol,
-          chordTones: recommendation.chordTones,
-          quality: recommendation.quality,
-          symbol: recommendation.symbol,
-          suggestion,
-        });
-        break;
-      }
-
-      case RECOMMEND_CHORD_SCALE_TOOL.name: {
-        const chord = typeof args.chord === "string" ? args.chord : "";
-        const key = typeof args.key === "string" ? args.key : context.key;
-        const modality =
-          typeof args.modality === "string" ? args.modality : context.modality;
-
-        if (!chord) {
-          response = { success: false, error: "Missing chord." };
-          break;
-        }
-
-        const recommendation = buildChordScaleRecommendation(
-          chord,
-          key,
-          modality,
-        );
-        const suggestion = `Try ${recommendation.root} ${recommendation.scaleName} (${recommendation.scaleNotes.join(
-          ", ",
-        )}) to match ${recommendation.symbol}.`;
-
-        response = {
-          success: true,
-          chord: recommendation.symbol,
-          scaleName: recommendation.scaleName,
-          scaleNotes: recommendation.scaleNotes,
-          suggestion,
-        };
-
-        toolResults.push({
-          type: "chord_scale_recommendation",
-          chord: recommendation.symbol,
-          scaleName: recommendation.scaleName,
-          scaleNotes: recommendation.scaleNotes,
-          quality: recommendation.quality,
-          symbol: recommendation.symbol,
-          suggestion,
-        });
-        break;
-      }
-
-      default:
-        response = { success: false, error: "Unknown tool call." };
-        break;
-    }
-
-    functionResponseParts.push({
-      functionResponse: {
-        name: functionName ?? "unknown",
-        response,
-      },
-    });
-  }
-
-  conversation.push({ role: "user", parts: functionResponseParts });
-  return { handled: true, toolResults };
-};
-
 const summarizeAnalysis = async (input: {
   summaryPayload: Record<string, unknown>;
   key: string;
   modality: string;
-}): Promise<{ response: string; toolResults: AnalysisToolResult[] }> => {
+}): Promise<{ response: string }> => {
   if (!env.GEMINI_API_KEY) {
     return {
       response:
         "Analysis complete. Configure GEMINI_API_KEY to enable AI feedback.",
-      toolResults: [],
     };
   }
 
   const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
-  const prompt = `${ANALYSIS_PROMPT_INSTRUCTION}\n\nAnalyze this solo and suggest improvements. Use tools for chord-tone or chord-scale alternatives when helpful.\n\n${JSON.stringify(
+  const prompt = `${ANALYSIS_PROMPT_INSTRUCTION}\n\nAnalyze this solo and suggest improvements.\n\n${JSON.stringify(
     input.summaryPayload,
     null,
     2,
   )}`;
 
   const conversation: ConversationEntry[] = [createUserPrompt(prompt)];
-  const toolResults: AnalysisToolResult[] = [];
 
   for (let attempt = 1; attempt <= MAX_GEMINI_ATTEMPTS; attempt++) {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: conversation,
-      config: {
-        tools: [
-          {
-            functionDeclarations: [
-              RECOMMEND_CHORD_TONES_TOOL,
-              RECOMMEND_CHORD_SCALE_TOOL,
-            ],
-          },
-        ],
-      },
     });
 
-    const candidateContent = cloneContent(response.candidates?.[0]?.content);
+    const candidateContent = response.candidates?.[0]?.content;
     if (candidateContent) {
       conversation.push(candidateContent);
-    }
-
-    const toolCallResult = await handleToolCalls(conversation, candidateContent, {
-      key: input.key,
-      modality: input.modality,
-    });
-
-    if (toolCallResult.handled) {
-      toolResults.push(...toolCallResult.toolResults);
-      continue;
     }
 
     const responseText = extractTextFromParts(candidateContent?.parts ?? []);
     return {
       response: responseText || "Analysis complete.",
-      toolResults,
     };
   }
 
   return {
     response: "Analysis complete.",
-    toolResults,
   };
 };
 
@@ -274,6 +94,78 @@ export const analyzeRecording = async (
     modality: input.modality,
   });
 
+  const usedPitchClasses = new Set(
+    input.midiData
+      .map((note) => Note.pitchClass(Note.fromMidi(note.pitch)))
+      .filter((value): value is string => Boolean(value)),
+  );
+
+  const usedPitchClassList = Array.from(usedPitchClasses);
+
+  const chordCoverageMap = new Map<string, { total: number; matches: number }>();
+  harmonicAnalysis.noteContexts.forEach((context) => {
+    const chordName = context.chordNames[0] ?? "";
+    if (!chordName) return;
+    const chord = Chord.get(chordName);
+    if (!chord.notes.length) return;
+    const chordPitchClasses = chord.notes
+      .map((note) => Note.pitchClass(note))
+      .filter((value): value is string => Boolean(value));
+
+    const entry = chordCoverageMap.get(chordName) ?? { total: 0, matches: 0 };
+    entry.total += 1;
+    if (context.pitchClass && chordPitchClasses.includes(context.pitchClass)) {
+      entry.matches += 1;
+    }
+    chordCoverageMap.set(chordName, entry);
+  });
+
+  const detectedArpeggios = Array.from(chordCoverageMap.entries())
+    .map(([chord, stats]) => ({
+      chord,
+      coverage: stats.total > 0 ? stats.matches / stats.total : 0,
+      totalNotes: stats.total,
+    }))
+    .filter((item) => item.totalNotes >= 3 && item.coverage >= 0.6)
+    .sort((a, b) => b.coverage - a.coverage)
+    .slice(0, 3);
+
+  const scaleCandidates = Array.from(
+    new Set([
+      input.modality,
+      "major",
+      "minor",
+      "dorian",
+      "mixolydian",
+      "aeolian",
+    ]),
+  );
+
+  const detectedScales = scaleCandidates
+    .map((scaleName) => {
+      const scale = Scale.get(`${input.key} ${scaleName}`.trim());
+      if (!scale.notes.length || usedPitchClassList.length === 0) return null;
+      const scalePitchClasses = new Set(
+        scale.notes
+          .map((note) => Note.pitchClass(note))
+          .filter((value): value is string => Boolean(value)),
+      );
+      const matches = usedPitchClassList.filter((pc) =>
+        scalePitchClasses.has(pc),
+      ).length;
+      const coverage = matches / usedPitchClassList.length;
+      return {
+        scale: scale.name || `${input.key} ${scaleName}`,
+        coverage,
+      };
+    })
+    .filter(
+      (item): item is { scale: string; coverage: number } => Boolean(item),
+    )
+    .filter((item) => item.coverage >= 0.7)
+    .sort((a, b) => b.coverage - a.coverage)
+    .slice(0, 3);
+
   const summaryPayload = {
     key: input.key,
     modality: input.modality,
@@ -284,6 +176,21 @@ export const analyzeRecording = async (
     perChord: harmonicAnalysis.perChord,
     melodicContour: harmonicAnalysis.melodicContour,
     intervalDistribution: harmonicAnalysis.intervalDistribution,
+    overview: {
+      totalNotes: harmonicAnalysis.metrics.totalNotes,
+      chordToneRatio: harmonicAnalysis.metrics.chordToneRatio,
+      scaleToneRatio: harmonicAnalysis.metrics.scaleToneRatio,
+      outsideScaleRatio: harmonicAnalysis.metrics.outsideScaleRatio,
+      strongBeatChordToneRatio:
+        harmonicAnalysis.metrics.strongBeatChordToneRatio,
+      averageInterval: harmonicAnalysis.melodicContour.averageInterval,
+      smallStepRatio: harmonicAnalysis.melodicContour.smallStepRatio,
+      largeLeapRatio: harmonicAnalysis.melodicContour.largeLeapRatio,
+      averageDuration:
+        harmonicAnalysis.melodicContour.durationVariety.averageDuration,
+    },
+    detectedScales,
+    detectedArpeggios,
   };
 
   const aiSummary = await summarizeAnalysis({
@@ -297,7 +204,7 @@ export const analyzeRecording = async (
     analysis: harmonicAnalysis,
     recommendations: {
       summary: aiSummary.response,
-      toolResults: aiSummary.toolResults,
+      toolResults: [],
     },
   };
 };

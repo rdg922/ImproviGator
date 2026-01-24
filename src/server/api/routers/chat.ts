@@ -444,7 +444,7 @@ async function callGeminiChatAPI(
     userMessage,
   });
 
-    const prompt = `${CHAT_SYSTEM_INSTRUCTION}
+  const prompt = `${CHAT_SYSTEM_INSTRUCTION}
 
   Current session context:
   - Key: ${context.key}

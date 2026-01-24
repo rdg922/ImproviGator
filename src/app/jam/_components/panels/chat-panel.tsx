@@ -32,6 +32,7 @@ export default function ChatPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const lastAutoAnalysisRef = useRef<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const analysisStreamRef = useRef<number | null>(null);
 
   const chatMutation = api.chat.sendMessage.useMutation();
 
@@ -63,35 +64,92 @@ export default function ChatPanel() {
       }));
   };
 
+  const clearAnalysisStream = () => {
+    if (analysisStreamRef.current) {
+      window.clearTimeout(analysisStreamRef.current);
+      analysisStreamRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (analysisStatus !== "loading") return;
+    if (!recording) return;
+
+    const analysisKey = `${recording.timestamp.toString()}-thinking`;
+    const thinkingId = `analysis-thinking-${analysisKey}`;
+
+    setChatMessages((prev: ChatMessage[]) => {
+      if (prev.some((message) => message.id === thinkingId)) {
+        return prev;
+      }
+      return [
+        ...prev,
+        {
+          id: thinkingId,
+          role: "assistant",
+          content: "Thinking…",
+          isThinking: true,
+        },
+      ];
+    });
+  }, [analysisStatus, recording, setChatMessages]);
+
   useEffect(() => {
     if (analysisStatus !== "success" || !analysisResult || !recording) return;
     const analysisKey = `${recording.timestamp.toString()}-${analysisResult.analysis.metrics.totalNotes}`;
     if (lastAutoAnalysisRef.current === analysisKey) return;
 
     lastAutoAnalysisRef.current = analysisKey;
-    const toolSuggestions = analysisResult.recommendations.toolResults
-      .map((tool) => tool.suggestion)
-      .filter((suggestion) => suggestion.trim().length > 0);
-    const summary = analysisResult.recommendations.summary?.trim();
-    const messageLines = [summary || "Here’s your take summary."];
-    if (toolSuggestions.length > 0) {
-      messageLines.push("\nSuggestions:");
-      toolSuggestions.forEach((suggestion) => {
-        messageLines.push(`- ${suggestion}`);
-      });
+    clearAnalysisStream();
+
+    const summaryText =
+      analysisResult.recommendations.summary?.trim() ||
+      "Here’s a quick overview of your take.";
+    const summaryParts = summaryText
+      .split(/\n{2,}|\n/)
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0);
+    const blocks = summaryParts.length > 0 ? summaryParts : [summaryText];
+    const hasQuestion = /\?/g.test(summaryText);
+    if (!hasQuestion) {
+      blocks.push("What would you like to focus on next?");
     }
-    const autoMessage: ChatMessage = {
-      role: "assistant",
-      content: messageLines.join("\n"),
+
+    const thinkingId = `analysis-thinking-${recording.timestamp.toString()}-thinking`;
+    let index = 0;
+
+    const pushBlock = () => {
+      setChatMessages((prev: ChatMessage[]) => {
+        const withoutThinking = prev.filter(
+          (message) => message.id !== thinkingId,
+        );
+        const next = [...withoutThinking];
+        if (index < blocks.length) {
+          next.push({
+            id: `analysis-${analysisKey}-${index}`,
+            role: "assistant",
+            content: blocks[index] ?? "",
+          });
+        }
+        return next;
+      });
+
+      index += 1;
+      if (index < blocks.length) {
+        analysisStreamRef.current = window.setTimeout(pushBlock, 450);
+      } else {
+        const finalContent = blocks.join("\n\n");
+        setConversationHistory((prev) => [
+          ...prev,
+          {
+            role: "model" as const,
+            parts: [{ text: finalContent }],
+          },
+        ]);
+      }
     };
-    setChatMessages((prev: ChatMessage[]) => [...prev, autoMessage]);
-    setConversationHistory((prev) => [
-      ...prev,
-      {
-        role: "model" as const,
-        parts: [{ text: autoMessage.content }],
-      },
-    ]);
+
+    analysisStreamRef.current = window.setTimeout(pushBlock, 300);
   }, [
     analysisStatus,
     analysisResult,
