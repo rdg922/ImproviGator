@@ -120,12 +120,6 @@ const getChordData = (chordName: string, voicingIndex: number) => {
   const index = Math.min(Math.max(voicingIndex, 0), voicings.length - 1);
   return voicings[index];
 };
-import { useJamSession } from "./jam-session-context";
-import {
-  GUITAR_INSTRUMENT,
-  getChordVoicings,
-  getChordData,
-} from "~/lib/chord-utils";
 
 export default function SavedChords() {
   const { savedChords, removeSavedChord, updateSavedChordVoicing } =
