@@ -81,12 +81,8 @@ export default function RightPanel() {
   useEffect(() => {
     if (!containerRef.current || strudelRef.current) return;
 
-    const hiddenContainer = document.createElement("div");
-    hiddenContainer.style.display = "none";
-    document.body.appendChild(hiddenContainer);
-
     const editor = new StrudelMirror({
-      root: hiddenContainer,
+      root: containerRef.current,
       initialCode: "",
       defaultOutput: webaudioOutput,
       getTime: () => getAudioContext().currentTime,
@@ -102,7 +98,6 @@ export default function RightPanel() {
     return () => {
       editor.stop?.();
       editor.clear?.();
-      hiddenContainer.remove();
       strudelRef.current = null;
     };
   }, []);
@@ -178,8 +173,12 @@ export default function RightPanel() {
   };
 
   return (
-    <div className="mb-4 flex h-full flex-col border-4 border-black bg-amber-200 p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-      <div ref={containerRef} style={{ display: "none" }} />
+    <div className="relative mb-4 flex h-full flex-col border-4 border-black bg-amber-200 p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+      <div
+        ref={containerRef}
+        className="pointer-events-none absolute h-0 w-0 overflow-hidden opacity-0"
+        aria-hidden="true"
+      />
       {view === "Grid" ? (
         <RightPanelGrid highlightedIndex={highlightedChordIndex} />
       ) : (

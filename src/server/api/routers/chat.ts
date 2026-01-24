@@ -240,7 +240,11 @@ async function callGeminiChatAPI(
     savedChords: string[];
     conversationHistory?: ConversationEntry[];
   },
-): Promise<{ response: string; toolResults: ToolResult[] }> {
+): Promise<{
+  response: string;
+  toolResults: ToolResult[];
+  updatedHistory: ConversationEntry[];
+}> {
   const ai = new GoogleGenAI({
     apiKey: env.GEMINI_API_KEY,
   });
@@ -310,6 +314,7 @@ ${context.strudelCode}
         return {
           response: "I've made those changes for you!",
           toolResults: allToolResults,
+          updatedHistory: conversation,
         };
       }
       throw new Error("No response from Gemini API");
@@ -318,6 +323,7 @@ ${context.strudelCode}
     return {
       response: responseText,
       toolResults: allToolResults,
+      updatedHistory: conversation,
     };
   }
 
@@ -348,21 +354,20 @@ export const chatRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       try {
-        const { response, toolResults } = await callGeminiChatAPI(
-          input.message,
-          {
+        const { response, toolResults, updatedHistory } =
+          await callGeminiChatAPI(input.message, {
             key: input.key,
             modality: input.modality,
             strudelCode: input.strudelCode,
             savedChords: input.savedChords,
             conversationHistory: input.conversationHistory,
-          },
-        );
+          });
 
         return {
           success: true,
           response,
           toolResults,
+          updatedHistory,
         };
       } catch (error) {
         const errorMessage =
@@ -372,6 +377,7 @@ export const chatRouter = createTRPCRouter({
           error: errorMessage,
           response: "Sorry, I encountered an error processing your request.",
           toolResults: [],
+          updatedHistory: input.conversationHistory ?? [],
         };
       }
     }),

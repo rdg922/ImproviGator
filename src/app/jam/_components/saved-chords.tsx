@@ -84,20 +84,22 @@ export default function SavedChords() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             {savedChords.map((chord, index) => {
               const chordData = getChordData(chord);
               return (
                 <div
                   key={index}
-                  className="group relative flex flex-col items-center justify-center border-4 border-black bg-yellow-200 p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  className="group relative flex flex-col items-center justify-center border-4 border-black bg-yellow-200 p-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                 >
-                  <div className="mb-1 text-sm font-black">{chord}</div>
-                  <Chord
-                    chord={chordData}
-                    instrument={GUITAR_INSTRUMENT}
-                    lite={true}
-                  />
+                  <div className="mb-0.5 text-xs font-black">{chord}</div>
+                  <div className="scale-75">
+                    <Chord
+                      chord={chordData}
+                      instrument={GUITAR_INSTRUMENT}
+                      lite={true}
+                    />
+                  </div>
                   <button
                     onClick={() => removeSavedChord(chord)}
                     className="absolute top-1 right-1 opacity-0 transition-opacity group-hover:opacity-100"

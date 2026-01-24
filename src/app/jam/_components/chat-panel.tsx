@@ -79,18 +79,21 @@ export default function ChatPanel() {
         };
         setChatMessages((prev: ChatMessage[]) => [...prev, assistantReply]);
 
-        // Update conversation history (simplified - you may want to store full Gemini format)
-        setConversationHistory((prev) => [
-          ...prev,
-          {
-            role: "user",
-            parts: [{ text: inputMessage }],
-          },
-          {
-            role: "model",
-            parts: [{ text: result.response }],
-          },
-        ]);
+        if (result.updatedHistory) {
+          setConversationHistory(result.updatedHistory);
+        } else {
+          setConversationHistory((prev) => [
+            ...prev,
+            {
+              role: "user",
+              parts: [{ text: inputMessage }],
+            },
+            {
+              role: "model",
+              parts: [{ text: result.response }],
+            },
+          ]);
+        }
       } else {
         const errorReply: ChatMessage = {
           role: "assistant",
