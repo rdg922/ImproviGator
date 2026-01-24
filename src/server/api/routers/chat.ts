@@ -1,18 +1,25 @@
 import { z } from "zod";
 import { GoogleGenAI, Type, type Content, type Part } from "@google/genai";
+import { Chord, Scale } from "tonal";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { env } from "~/env";
 
 const MAX_GEMINI_ATTEMPTS = 5;
 
-const CHAT_SYSTEM_INSTRUCTION = `You are a helpful music assistant for a jam session application. You can:
+const CHAT_SYSTEM_INSTRUCTION = `You are a helpful music assistant for a music improvisation learning tool. Your goal is to help young guitarists learn how to improvise. 
+
+You can:
 1. Edit the backing track (Strudel code)
 2. Show scales on the fretboard
 3. Add chords to the saved chords list
+4. Answer basic music theory questions (scales, modes, arpeggios) using the music_theory_query tool
+5. Offer music theory solo suggestions and feedback to accompany the current backing track. This can range from high level theory of using a single scale for starting, to utilizing certain arpeggions that fit over the V.
 
 When the user asks to make changes to the backing track, call the edit_backing_track tool.
 When the user asks to see a scale or show notes on the fretboard, call the show_scale tool.
 When the user asks to add or save a chord, call the add_chord tool.
+When the user asks a music theory question (like what scales/arpeggios fit), call the music_theory_query tool and if applicable show_scale and/or add_chords
+Always use the current backing track Strudel code and the session context when answering.
 
 Be conversational and helpful. Understand musical terminology and context.`;
 
@@ -78,8 +85,56 @@ const ADD_CHORD_TOOL = {
   },
 };
 
+const MUSIC_THEORY_TOOL = {
+  name: "music_theory_query",
+  description:
+    "Answers music theory questions (scales, modes, arpeggios, chords) using Tonal. Use this to compute notes or intervals for a scale/chord/arpeggio.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      queryType: {
+        type: Type.STRING,
+        description: "The type of theory query: scale, arpeggio, or chord.",
+      },
+      root: {
+        type: Type.STRING,
+        description:
+          "Root note for the scale (e.g., C, D#, Bb). Defaults to the current session key if omitted.",
+      },
+      scale: {
+        type: Type.STRING,
+        description:
+          "Scale or mode name (e.g., major, minor, dorian, mixolydian). Defaults to current session modality if omitted.",
+      },
+      chord: {
+        type: Type.STRING,
+        description:
+          "Chord name for chord/arpeggio queries (e.g., Cmaj7, Dm7, G7).",
+      },
+    },
+    required: ["queryType"],
+  },
+};
+
 type ConversationEntry = Content;
 type ConversationPart = Part;
+
+const MODALITY_TO_TONAL: Record<string, string> = {
+  Major: "major",
+  Minor: "minor",
+  "Natural Minor": "natural minor",
+  "Harmonic Minor": "harmonic minor",
+  "Melodic Minor": "melodic minor",
+  Dorian: "dorian",
+  Phrygian: "phrygian",
+  Lydian: "lydian",
+  Mixolydian: "mixolydian",
+  Aeolian: "aeolian",
+  Locrian: "locrian",
+};
+
+const normalizeScaleName = (name: string) =>
+  MODALITY_TO_TONAL[name] ?? name.toLowerCase();
 
 export type ToolResult =
   | { type: "edit_backing_track"; newStrudelCode: string; explanation: string }
@@ -207,6 +262,73 @@ const handleToolCalls = async (
         break;
       }
 
+      case MUSIC_THEORY_TOOL.name: {
+        const queryTypeRaw =
+          typeof args.queryType === "string" ? args.queryType : "";
+        const queryType = queryTypeRaw.toLowerCase();
+        const root =
+          typeof args.root === "string" && args.root.trim().length > 0
+            ? args.root.trim()
+            : currentContext.key;
+        const scaleInput =
+          typeof args.scale === "string" && args.scale.trim().length > 0
+            ? args.scale.trim()
+            : currentContext.modality;
+        const scaleName = normalizeScaleName(scaleInput);
+        const chordName =
+          typeof args.chord === "string" ? args.chord.trim() : "";
+
+        if (queryType === "scale") {
+          const scale = Scale.get(`${root} ${scaleName}`.trim());
+          if (!scale.notes.length) {
+            response = {
+              success: false,
+              error: `Unknown scale: ${root} ${scaleName}`,
+            };
+          } else {
+            response = {
+              success: true,
+              queryType: "scale",
+              root,
+              scale: scaleName,
+              notes: scale.notes,
+              intervals: scale.intervals,
+            };
+          }
+        } else if (queryType === "arpeggio" || queryType === "chord") {
+          if (!chordName) {
+            response = {
+              success: false,
+              error:
+                "Chord name required for arpeggio/chord queries (e.g., Cmaj7, Dm7, G7).",
+            };
+          } else {
+            const chord = Chord.get(chordName);
+            if (!chord.notes.length) {
+              response = {
+                success: false,
+                error: `Unknown chord: ${chordName}`,
+              };
+            } else {
+              response = {
+                success: true,
+                queryType,
+                chord: chordName,
+                notes: chord.notes,
+                intervals: chord.intervals,
+                aliases: chord.aliases,
+              };
+            }
+          }
+        } else {
+          response = {
+            success: false,
+            error: "Unsupported queryType. Use scale, arpeggio, or chord.",
+          };
+        }
+        break;
+      }
+
       default: {
         response = {
           success: false,
@@ -279,6 +401,7 @@ ${context.strudelCode}
               EDIT_BACKING_TRACK_TOOL,
               SHOW_SCALE_TOOL,
               ADD_CHORD_TOOL,
+              MUSIC_THEORY_TOOL,
             ],
           },
         ],
