@@ -127,17 +127,17 @@ export default function CreatePanel({
   };
 
   return (
-    <div className="flex h-full flex-col p-3">
-      <div className="flex-1 space-y-3 overflow-y-auto">
+    <div className="flex h-full flex-col p-2">
+      <div className="flex-1 space-y-1 overflow-y-auto">
         <div className="flex flex-row justify-stretch gap-x-5">
           <div className="grow">
-            <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
+            <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
               Key
             </label>
             <select
               value={localKey}
               onChange={(e) => setLocalKey(e.target.value)}
-              className="w-full border-4 border-black bg-yellow-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              className="w-full border-4 border-black bg-yellow-200 px-3 py-1 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             >
               {KEY_OPTIONS.map((option) => (
                 <option key={option}>{option}</option>
@@ -152,7 +152,7 @@ export default function CreatePanel({
             <select
               value={localModality}
               onChange={(e) => setLocalModality(e.target.value)}
-              className="w-full border-4 border-black bg-pink-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              className="w-full border-4 border-black bg-pink-200 px-3 py-1 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             >
               {MODALITY_OPTIONS.map((option) => (
                 <option key={option}>{option}</option>
@@ -163,7 +163,7 @@ export default function CreatePanel({
 
         <div className="flex flex-row justify-stretch gap-x-5">
           <div className="grow">
-            <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
+            <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
               Tempo (BPM)
             </label>
             <input
@@ -172,12 +172,12 @@ export default function CreatePanel({
               onChange={(e) => setLocalTempo(Number(e.target.value))}
               min={40}
               max={240}
-              className="w-full border-4 border-black bg-blue-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              className="w-full border-4 border-black bg-blue-200 px-3 py-1 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             />
           </div>
 
           <div className="grow">
-            <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
+            <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
               Bars (1-64)
             </label>
             <input
@@ -186,13 +186,13 @@ export default function CreatePanel({
               max={64}
               value={localBars}
               onChange={(e) => setLocalBars(Number(e.target.value))}
-              className="w-full border-4 border-black bg-purple-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              className="w-full border-4 border-black bg-purple-200 px-3 py-1 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             />
           </div>
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
+          <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
             Time Signature
           </label>
           <div className="flex gap-2">
@@ -200,7 +200,7 @@ export default function CreatePanel({
               <button
                 key={sig}
                 onClick={() => setLocalTimeSignature(sig)}
-                className={`flex-1 border-4 border-black px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+                className={`flex-1 border-4 border-black px-3 py-1 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
                   localTimeSignature === sig
                     ? "bg-cyan-400 text-black"
                     : "bg-white text-gray-700"
@@ -213,7 +213,7 @@ export default function CreatePanel({
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
+          <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
             Instruments (comma separated)
           </label>
           <input
@@ -221,34 +221,34 @@ export default function CreatePanel({
             value={localInstrumentsInput}
             onChange={(e) => setLocalInstrumentsInput(e.target.value)}
             placeholder="e.g., drums, piano, bass"
-            className="w-full border-4 border-black bg-pink-100 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none"
+            className="w-full border-4 border-black bg-pink-100 px-3 py-1 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
+          <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
             Description (genre, mood, etc.)
           </label>
           <textarea
-            rows={2}
+            rows={1}
             value={localDescription}
             onChange={(e) => setLocalDescription(e.target.value)}
             placeholder="e.g., Jazzy, upbeat, latin vibes..."
-            className="w-full border-4 border-black bg-green-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:ring-0 focus:outline-none"
+            className="w-full border-4 border-black bg-green-200 px-3 py-1 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:ring-0 focus:outline-none"
           ></textarea>
         </div>
 
         <button
           onClick={handleGenerate}
           disabled={generateBackingTrack.isPending}
-          className="w-full border-4 border-black bg-orange-400 px-6 py-3 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:bg-orange-300 disabled:shadow-none"
+          className="w-full border-4 border-black bg-orange-400 px-4 py-2 text-lg font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:bg-orange-300 disabled:shadow-none"
         >
           {generateBackingTrack.isPending ? "Generating..." : "Generate"}
         </button>
 
         {feedback && (
           <div
-            className={`border-4 border-black px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
+            className={`border-4 border-black px-3 py-1 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
               feedback.type === "success"
                 ? "bg-green-200 text-black"
                 : "bg-red-200 text-black"

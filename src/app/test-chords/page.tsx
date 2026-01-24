@@ -4,26 +4,28 @@ import { useState } from "react";
 
 function parseChords(code: string) {
   // Match chord() with backticks, double quotes, or single quotes
-  const chordLineMatch = code.match(/let\s+chords\s*=\s*chord\(([`"])([^`"']+)\1\)/s);
+  const chordLineMatch = code.match(
+    /let\s+chords\s*=\s*chord\(([`"])([^`"']+)\1\)/s,
+  );
   if (!chordLineMatch) return [];
 
   let rawContent = chordLineMatch[2];
-  
+
   // Try to extract content within < > to ignore multipliers like *4
   // If no angle brackets, use the entire content
   const angleMatch = rawContent.match(/<([^>]+)>/s);
   if (angleMatch) {
     rawContent = angleMatch[1];
   }
-  
+
   // Remove comments (// single-line comments)
   let chordContent = rawContent
-    .split('\n')
-    .map(line => {
-      const commentIndex = line.indexOf('//');
+    .split("\n")
+    .map((line) => {
+      const commentIndex = line.indexOf("//");
       return commentIndex >= 0 ? line.substring(0, commentIndex) : line;
     })
-    .join(' ')
+    .join(" ")
     .trim();
 
   const tokens: Array<{ chord: string | string[]; index: number }> = [];
@@ -38,16 +40,16 @@ function parseChords(code: string) {
     if (i >= chordContent.length) break;
 
     // Check for bracketed group
-    if (chordContent[i] === '[') {
+    if (chordContent[i] === "[") {
       i++;
       const groupChords: string[] = [];
-      let buffer = '';
-      
-      while (i < chordContent.length && chordContent[i] !== ']') {
+      let buffer = "";
+
+      while (i < chordContent.length && chordContent[i] !== "]") {
         if (/\s/.test(chordContent[i])) {
           if (buffer) {
             groupChords.push(buffer);
-            buffer = '';
+            buffer = "";
           }
         } else {
           buffer += chordContent[i];
@@ -62,7 +64,7 @@ function parseChords(code: string) {
       i++; // skip ']'
     } else {
       // Single chord
-      let buffer = '';
+      let buffer = "";
       while (i < chordContent.length && !/[\s\[\]]/.test(chordContent[i])) {
         buffer += chordContent[i];
         i++;
@@ -87,7 +89,7 @@ Fm9 Bb13 Eb^9 [Gm7 C7b9] // Jazz progression
 >\`)
 
 // Piano: Syncopated bossa clave pattern
-$: chords.struct("x ~ x ~ ~ x ~ x").voicing().piano().room(.5).velocity(.7)`
+$: chords.struct("x ~ x ~ ~ x ~ x").voicing().piano().room(.5).velocity(.7)`,
   },
   {
     name: "Double quotes with angle brackets and multiplier",
@@ -96,7 +98,7 @@ $: chords.struct("x ~ x ~ ~ x ~ x").voicing().piano().room(.5).velocity(.7)`
 let chords = chord("<C^7 G^7 Am7 F^7>*4")
 
 // Drums
-$: s("bd*4 [~ sd] bd [~ sd], hh*8").bank("RolandTR808").gain(1)`
+$: s("bd*4 [~ sd] bd [~ sd], hh*8").bank("RolandTR808").gain(1)`,
   },
   {
     name: "Backticks without angle brackets (multi-line)",
@@ -110,7 +112,7 @@ Am7 Dm7 G7 C^7
 \`)
 
 // Piano
-$: chords.voicing().s("piano").room(.3).velocity(.7).gain(1)`
+$: chords.voicing().s("piano").room(.3).velocity(.7).gain(1)`,
   },
   {
     name: "Single quotes with angle brackets",
@@ -118,8 +120,8 @@ $: chords.voicing().s("piano").room(.3).velocity(.7).gain(1)`
 
 let chords = chord('<Dm7 G7 C^7 A7>*2')
 
-$: chords.voicing().s("piano")`
-  }
+$: chords.voicing().s("piano")`,
+  },
 ];
 
 const EXAMPLE_CODE = TEST_CASES[0].code;
@@ -150,9 +152,7 @@ export default function TestChordsPage() {
         </h1>
 
         <div className="mb-6">
-          <label className="mb-2 block text-lg font-bold">
-            Test Cases:
-          </label>
+          <label className="mb-2 block text-lg font-bold">Test Cases:</label>
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {TEST_CASES.map((testCase, idx) => (
               <button
@@ -169,9 +169,7 @@ export default function TestChordsPage() {
         </div>
 
         <div className="mb-6">
-          <label className="mb-2 block text-lg font-bold">
-            Strudel Code:
-          </label>
+          <label className="mb-2 block text-lg font-bold">Strudel Code:</label>
           <textarea
             value={strudelCode}
             onChange={(e) => setStrudelCode(e.target.value)}
@@ -190,17 +188,19 @@ export default function TestChordsPage() {
 
         <div className="border-4 border-black bg-white p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
           <h2 className="mb-4 text-2xl font-black">Parsed Results:</h2>
-          
+
           {parsedChords.length === 0 ? (
             <p className="text-gray-500 italic">
-              No chords parsed yet. Click &quot;Parse Chords&quot; to see results.
+              No chords parsed yet. Click &quot;Parse Chords&quot; to see
+              results.
             </p>
           ) : (
             <div className="space-y-4">
               <p className="font-bold">
-                Found {parsedChords.length} chord{parsedChords.length !== 1 ? 's' : ''}
+                Found {parsedChords.length} chord
+                {parsedChords.length !== 1 ? "s" : ""}
               </p>
-              
+
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
                 {parsedChords.map((item, idx) => (
                   <div
