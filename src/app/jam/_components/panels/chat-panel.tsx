@@ -99,6 +99,13 @@ export default function ChatPanel() {
     if (analysisStatus !== "success" || !analysisResult || !recording) return;
     const analysisKey = `${recording.timestamp.toString()}-${analysisResult.analysis.metrics.totalNotes}`;
     if (lastAutoAnalysisRef.current === analysisKey) return;
+    if (
+      chatMessages.some((message) =>
+        message.id?.startsWith(`analysis-${analysisKey}-`),
+      )
+    ) {
+      return;
+    }
 
     lastAutoAnalysisRef.current = analysisKey;
     clearAnalysisStream();
@@ -159,6 +166,7 @@ export default function ChatPanel() {
     analysisStatus,
     analysisResult,
     recording,
+    chatMessages,
     setChatMessages,
     setConversationHistory,
   ]);
@@ -319,7 +327,9 @@ export default function ChatPanel() {
   };
 
   const parseSuggestedResponses = (response: string): string[] => {
-    const match = /---SUGGESTIONS---\n(.+?)\n---\n(.+?)(?:\n|$)/s.exec(response);
+    const match = /---SUGGESTIONS---\n(.+?)\n---\n(.+?)(?:\n|$)/s.exec(
+      response,
+    );
     if (match && match[1] && match[2]) {
       return [match[1].trim(), match[2].trim()];
     }

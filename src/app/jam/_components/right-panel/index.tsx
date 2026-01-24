@@ -8,6 +8,7 @@ import { useAudioRecorder } from "~/hooks/useAudioRecorder";
 import {
   detectNotesFromAudio,
   loadAudioFromBlob,
+  type PitchDetectionParams,
 } from "~/lib/audio/pitch-detection";
 import { StrudelMirror } from "@strudel/codemirror";
 import { evalScope } from "@strudel/core";
@@ -31,6 +32,14 @@ const sanitizeStrudelCode = (code: string) => {
     return fenced[1].trim();
   }
   return trimmed;
+};
+
+const DEFAULT_PITCH_PARAMS: PitchDetectionParams = {
+  noteSegmentation: 0.5,
+  modelConfidenceThreshold: 0.3,
+  minPitchHz: 0,
+  maxPitchHz: 3000,
+  minNoteLengthMs: 11,
 };
 
 const loadSamples = () => {
@@ -85,6 +94,7 @@ export default function RightPanel() {
     timeSignature,
     runAnalysis,
     analysisStatus,
+    clearAnalysis,
   } = useJamSession();
 
   const [view, setView] = useState<RightView>("Grid");
@@ -97,8 +107,11 @@ export default function RightPanel() {
     null,
   );
   const [isReady, setIsReady] = useState(false);
-  const { startRecording, stopRecording } = useAudioRecorder();
-  const autoStopRef = useRef<boolean>(false);
+  const {
+    isRecording: isMicRecording,
+    startRecording,
+    stopRecording,
+  } = useAudioRecorder();
   const containerRef = useRef<HTMLDivElement>(null);
   const countdownTimerRef = useRef<number | null>(null);
   const recordingTimeoutRef = useRef<number | null>(null);
@@ -109,6 +122,14 @@ export default function RightPanel() {
   const [takePlaybackMs, setTakePlaybackMs] = useState(0);
   const [recordingResetToken, setRecordingResetToken] = useState(0);
   const hasRecordingAudio = Boolean(recordingAudioUrl && recording);
+  const isRecordingRef = useRef(false);
+  const recordingPlannedDurationMsRef = useRef<number | null>(null);
+  const recordingFinalizedRef = useRef(false);
+  const recordingStopRequestedRef = useRef(false);
+  const recordingStartAtRef = useRef<number | null>(null);
+  const finalizeRecordingRef = useRef<(durationOverride?: number) => void>(
+    () => {},
+  );
 
   // Initialize Strudel audio
   useEffect(() => {
@@ -130,6 +151,10 @@ export default function RightPanel() {
       }
     };
   }, [recordingAudioUrl]);
+
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
 
   const stopPlayback = () => {
     if (strudelRef.current) {
@@ -183,6 +208,11 @@ export default function RightPanel() {
       prebake: ensureAudioReady,
       onToggle: (started: boolean) => {
         setIsPlaying(started);
+        if (!started && isRecordingRef.current) {
+          const durationOverride =
+            recordingPlannedDurationMsRef.current ?? undefined;
+          void finalizeRecordingRef.current(durationOverride);
+        }
       },
     });
 
@@ -281,7 +311,6 @@ export default function RightPanel() {
       window.clearTimeout(recordingTimeoutRef.current);
       recordingTimeoutRef.current = null;
     }
-    autoStopRef.current = false;
   };
 
   const startPlayback = async () => {
@@ -305,8 +334,11 @@ export default function RightPanel() {
     setIsTakePlaying(false);
   };
 
-  const startAudioCapture = async () => {
+  const startAudioCapture = async (plannedDurationMs?: number) => {
     try {
+      recordingStopRequestedRef.current = false;
+      recordingFinalizedRef.current = false;
+      clearAnalysis();
       setMidiData([]);
       setRecording(null);
       if (recordingAudioUrl) {
@@ -314,25 +346,40 @@ export default function RightPanel() {
         setRecordingAudioUrl(null);
       }
       await startRecording();
-      return true;
+      recordingStartAtRef.current = performance.now();
+      const durationMs =
+        plannedDurationMs ?? recordingPlannedDurationMsRef.current ?? null;
+      if (durationMs && durationMs > 0) {
+        clearRecordingTimeout();
+        recordingTimeoutRef.current = window.setTimeout(() => {
+          void finalizeRecordingRef.current(durationMs);
+        }, durationMs + 50);
+      }
     } catch (err) {
       console.error(
         "Error starting audio recording:",
         err instanceof Error ? err.message : err,
       );
     }
-    return false;
   };
 
   const stopAudioCapture = async (durationOverride?: number) => {
+    if (recordingStopRequestedRef.current) return undefined;
+    recordingStopRequestedRef.current = true;
     try {
       const audioBlob = await stopRecording();
       const audioUrl = URL.createObjectURL(audioBlob);
       setRecordingAudioUrl(audioUrl);
       const audioBuffer = await loadAudioFromBlob(audioBlob);
-      let detectedNotes = await detectNotesFromAudio(audioBuffer);
+      let detectedNotes = await detectNotesFromAudio(
+        audioBuffer,
+        DEFAULT_PITCH_PARAMS,
+      );
       if (detectedNotes.length === 0) {
-        detectedNotes = await detectNotesFromAudio(audioBuffer);
+        detectedNotes = await detectNotesFromAudio(
+          audioBuffer,
+          DEFAULT_PITCH_PARAMS,
+        );
       }
       const midiNotes = detectedNotes.map((note) => ({
         pitch: Math.round(note.pitchMidi),
@@ -354,25 +401,35 @@ export default function RightPanel() {
       setMidiData(midiNotes);
       return midiNotes;
     } catch (err) {
-      console.error(
-        "Error processing audio recording:",
-        err instanceof Error ? err.message : err,
-      );
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.toLowerCase().includes("already been stopped")) {
+        return undefined;
+      }
+      console.error("Error processing audio recording:", message);
     }
     return undefined;
   };
 
   const finalizeRecording = async (durationOverride?: number) => {
-    autoStopRef.current = false;
+    if (recordingFinalizedRef.current) return;
+    recordingFinalizedRef.current = true;
+    clearRecordingTimeout();
+    recordingStartAtRef.current = null;
     setIsRecording(false);
     stopPlayback();
-    const midiNotes = await stopAudioCapture(durationOverride);
+    const effectiveDuration =
+      durationOverride ?? recordingPlannedDurationMsRef.current ?? undefined;
+    const midiNotes = await stopAudioCapture(effectiveDuration);
     await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
     const fallbackNotes = recording?.notes ?? midiData;
     const effectiveNotes =
       midiNotes && midiNotes.length > 0 ? midiNotes : fallbackNotes;
     await runAnalysis({ midiData: effectiveNotes });
   };
+
+  useEffect(() => {
+    finalizeRecordingRef.current = finalizeRecording;
+  }, [finalizeRecording]);
 
   const startCountdown = (mode: "play" | "record") => {
     if (countdownMode || isRecording) return;
@@ -395,24 +452,9 @@ export default function RightPanel() {
           setIsRecording(true);
           void startPlayback();
           const playthroughMs = getPlaythroughDurationMs();
-          clearRecordingTimeout();
-          autoStopRef.current = true;
-          void (async () => {
-            const startAt = performance.now();
-            const started = await startAudioCapture();
-            if (!started) {
-              autoStopRef.current = false;
-              setIsRecording(false);
-              return;
-            }
-            const elapsed = performance.now() - startAt;
-            const remainingMs = Math.max(0, playthroughMs - elapsed);
-            recordingTimeoutRef.current = window.setTimeout(() => {
-              if (autoStopRef.current) {
-                void finalizeRecording(playthroughMs);
-              }
-            }, remainingMs);
-          })();
+          recordingPlannedDurationMsRef.current = playthroughMs;
+          recordingFinalizedRef.current = false;
+          void startAudioCapture(playthroughMs);
         }
       } else {
         setCountdownBeats(remaining);

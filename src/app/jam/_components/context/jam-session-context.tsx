@@ -109,6 +109,7 @@ interface JamSessionContextType {
   analysisStatus: "idle" | "loading" | "success" | "error";
   analysisError: string | null;
   runAnalysis: (overrides?: Partial<AnalysisInput>) => Promise<void>;
+  clearAnalysis: () => void;
 }
 
 const JamSessionContext = createContext<JamSessionContextType | undefined>(
@@ -366,6 +367,12 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const clearAnalysis = () => {
+    setAnalysisResult(null);
+    setAnalysisError(null);
+    setAnalysisStatus("idle");
+  };
+
   return (
     <JamSessionContext.Provider
       value={{
@@ -405,6 +412,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
         analysisStatus,
         analysisError,
         runAnalysis,
+        clearAnalysis,
       }}
     >
       {children}
