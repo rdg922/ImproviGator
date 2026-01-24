@@ -71,7 +71,7 @@ const SHOW_SCALE_TOOL = {
 const ADD_CHORD_TOOL = {
   name: "add_chord",
   description:
-    "Adds a chord to the saved chords list. Use this when the user wants to save or remember a chord for later use.",
+    "Adds one or more chords to the saved chords list. Use this when the user wants to save or remember a chord for later use.",
   parameters: {
     type: Type.OBJECT,
     properties: {
@@ -80,8 +80,16 @@ const ADD_CHORD_TOOL = {
         description:
           "The chord name in standard notation (e.g., Cmaj7, Dm7, G, Am, E7)",
       },
+      chords: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.STRING,
+        },
+        description:
+          "A list of chord names to add in standard notation (e.g., [Cmaj7, Dm7, G7]).",
+      },
     },
-    required: ["chord"],
+    required: [],
   },
 };
 
@@ -144,7 +152,7 @@ export type ToolResult =
 const isFunctionCallPart = (
   part: ConversationPart,
 ): part is ConversationPart & {
-  functionCall: { name?: string; args?: unknown };
+  functionCall: { name?: string; args?: Record<string, unknown> };
 } => typeof part.functionCall === "object" && part.functionCall !== null;
 
 const createUserPrompt = (prompt: string): ConversationEntry => ({
@@ -192,7 +200,7 @@ const handleToolCalls = async (
   for (const part of functionCallParts) {
     const functionCall = part.functionCall;
     const functionName = functionCall.name;
-    const args = (functionCall.args ?? {}) as Record<string, unknown>;
+    const args = functionCall.args ?? {};
 
     let response: Record<string, unknown>;
     let toolResult: ToolResult | null = null;
@@ -241,23 +249,46 @@ const handleToolCalls = async (
 
       case ADD_CHORD_TOOL.name: {
         const chord = typeof args.chord === "string" ? args.chord : "";
+        const chordList = Array.isArray(args.chords)
+          ? args.chords.filter(
+              (item): item is string => typeof item === "string",
+            )
+          : [];
+        const requestedChords = [chord, ...chordList].filter(
+          (item) => item.trim().length > 0,
+        );
+        const uniqueChords = Array.from(new Set(requestedChords));
 
-        if (!chord) {
+        if (uniqueChords.length === 0) {
           response = {
             success: false,
             error: "No chord name provided",
           };
-        } else if (currentContext.savedChords.includes(chord)) {
-          response = {
-            success: true,
-            message: `Chord ${chord} is already in your saved chords`,
-          };
         } else {
+          const addedChords: string[] = [];
+          const skippedChords: string[] = [];
+
+          uniqueChords.forEach((name) => {
+            if (currentContext.savedChords.includes(name)) {
+              skippedChords.push(name);
+            } else {
+              addedChords.push(name);
+              toolResults.push({ type: "add_chord", chord: name });
+            }
+          });
+
+          const messages: string[] = [];
+          if (addedChords.length > 0) {
+            messages.push(`Added ${addedChords.join(", ")} to saved chords`);
+          }
+          if (skippedChords.length > 0) {
+            messages.push(`Already saved: ${skippedChords.join(", ")}`);
+          }
+
           response = {
             success: true,
-            message: `Added ${chord} to saved chords`,
+            message: messages.join(". "),
           };
-          toolResult = { type: "add_chord", chord };
         }
         break;
       }
@@ -371,6 +402,15 @@ async function callGeminiChatAPI(
     apiKey: env.GEMINI_API_KEY,
   });
 
+  console.info("[chat] LLM request context", {
+    key: context.key,
+    modality: context.modality,
+    savedChordsCount: context.savedChords.length,
+    strudelCodeLength: context.strudelCode.length,
+    conversationHistoryCount: context.conversationHistory?.length ?? 0,
+    userMessage,
+  });
+
   const systemInstruction = `${CHAT_SYSTEM_INSTRUCTION}
 
 Current session context:
@@ -390,6 +430,12 @@ ${context.strudelCode}
   const allToolResults: ToolResult[] = [];
 
   for (let attempt = 1; attempt <= MAX_GEMINI_ATTEMPTS; attempt++) {
+    console.info("[chat] LLM attempt", {
+      attempt,
+      maxAttempts: MAX_GEMINI_ATTEMPTS,
+      conversationLength: conversation.length,
+    });
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: conversation,
@@ -410,6 +456,13 @@ ${context.strudelCode}
 
     const candidateContent = cloneContent(response.candidates?.[0]?.content);
 
+    console.info("[chat] LLM raw response", {
+      candidates: response.candidates?.length ?? 0,
+      finishReason: response.candidates?.[0]?.finishReason ?? null,
+      hasContent: Boolean(candidateContent),
+      partsCount: candidateContent?.parts?.length ?? 0,
+    });
+
     if (candidateContent) {
       conversation.push(candidateContent);
     }
@@ -421,6 +474,10 @@ ${context.strudelCode}
     );
 
     if (toolResults.length > 0) {
+      console.info("[chat] LLM tool results", toolResults);
+    }
+
+    if (toolResults.length > 0) {
       allToolResults.push(...toolResults);
     }
 
@@ -430,6 +487,11 @@ ${context.strudelCode}
 
     // Extract final response text
     const responseText = extractTextFromParts(candidateContent?.parts);
+
+    console.info("[chat] LLM response text", {
+      hasText: responseText.length > 0,
+      textLength: responseText.length,
+    });
 
     if (!responseText) {
       if (allToolResults.length > 0) {

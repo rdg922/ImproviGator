@@ -118,22 +118,23 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   // Parse chords from Strudel code
   const parseChords = (code: string) => {
     // Match chord() with backticks, double quotes, or single quotes
-    const chordLineMatch = code.match(
-      /let\s+chords\s*=\s*chord\(([`"])([^`"']+)\1\)/s,
+    const chordLineMatch = /let\s+chords\s*=\s*chord\(([`"])([^`"']+)\1\)/s.exec(
+      code,
     );
     if (!chordLineMatch) return [];
 
-    let rawContent = chordLineMatch[2];
+    let rawContent = chordLineMatch[2] ?? "";
+    if (!rawContent) return [];
 
     // Try to extract content within < > to ignore multipliers like *4
     // If no angle brackets, use the entire content
-    const angleMatch = rawContent.match(/<([^>]+)>/s);
-    if (angleMatch) {
+    const angleMatch = /<([^>]+)>/s.exec(rawContent);
+    if (angleMatch?.[1]) {
       rawContent = angleMatch[1];
     }
 
     // Remove comments (// single-line comments)
-    let chordContent = rawContent
+    const chordContent = rawContent
       .split("\n")
       .map((line) => {
         const commentIndex = line.indexOf("//");
@@ -148,7 +149,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
 
     while (i < chordContent.length) {
       // Skip whitespace
-      while (i < chordContent.length && /\s/.test(chordContent[i])) {
+      while (i < chordContent.length && /\s/.test(chordContent[i] ?? "")) {
         i++;
       }
       if (i >= chordContent.length) break;
@@ -160,13 +161,13 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
         let buffer = "";
 
         while (i < chordContent.length && chordContent[i] !== "]") {
-          if (/\s/.test(chordContent[i])) {
+          if (/\s/.test(chordContent[i] ?? "")) {
             if (buffer) {
               groupChords.push(buffer);
               buffer = "";
             }
           } else {
-            buffer += chordContent[i];
+            buffer += chordContent[i] ?? "";
           }
           i++;
         }
@@ -179,8 +180,11 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
       } else {
         // Single chord
         let buffer = "";
-        while (i < chordContent.length && !/[\s\[\]]/.test(chordContent[i])) {
-          buffer += chordContent[i];
+        while (
+          i < chordContent.length &&
+          !/[\s\[\]]/.test(chordContent[i] ?? "")
+        ) {
+          buffer += chordContent[i] ?? "";
           i++;
         }
         if (buffer) {
@@ -212,9 +216,9 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   };
 
   const addSavedChord = (chord: string) => {
-    if (!savedChords.includes(chord)) {
-      setSavedChords([...savedChords, chord]);
-    }
+    setSavedChords((prev) =>
+      prev.includes(chord) ? prev : [...prev, chord],
+    );
   };
 
   const removeSavedChord = (chord: string) => {

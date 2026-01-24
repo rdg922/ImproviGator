@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useJamSession } from "./jam-session-context";
-import type { ChatMessage } from "./jam-session-context";
+import type { ChatMessage, ConversationEntry } from "./jam-session-context";
 import { api } from "~/trpc/react";
 
 export default function ChatPanel() {
@@ -25,8 +25,67 @@ export default function ChatPanel() {
 
   const chatMutation = api.chat.sendMessage.useMutation();
 
+  const normalizeHistory = (history: unknown): ConversationEntry[] => {
+    if (!Array.isArray(history)) {
+      return [];
+    }
+
+    return history
+      .filter(
+        (entry): entry is ConversationEntry =>
+          typeof entry === "object" &&
+          entry !== null &&
+          (entry as ConversationEntry).role !== undefined &&
+          ((entry as ConversationEntry).role === "user" ||
+            (entry as ConversationEntry).role === "model"),
+      )
+      .map((entry) => ({
+        role: entry.role,
+        parts: Array.isArray(entry.parts) ? entry.parts : [],
+      }));
+  };
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
+
+    const shouldAddAll = /\badd\s+all\s+(these|those|them)\b/i.test(
+      inputMessage,
+    );
+    if (shouldAddAll) {
+      const lastAssistantMessage = [...chatMessages]
+        .reverse()
+        .find((message) => message.role === "assistant")?.content;
+
+      const chordMatches = lastAssistantMessage
+        ? lastAssistantMessage.match(
+            /\b[A-G](?:#|b)?(?:maj|min|m|dim|aug|sus|add)?\d*(?:b5|#5|b9|#9)?\b/g,
+          )
+        : [];
+
+      const uniqueChords = Array.from(new Set(chordMatches ?? [])).filter(
+        (chord) => chord.length > 1 || /[A-G]/.test(chord),
+      );
+
+      if (uniqueChords.length > 0) {
+        uniqueChords.forEach((chord) => addSavedChord(chord));
+        const assistantReply: ChatMessage = {
+          role: "assistant",
+          content: `Added ${uniqueChords.join(", ")} to your saved chords.`,
+        };
+        setChatMessages((prev: ChatMessage[]) => [
+          ...prev,
+          { role: "user", content: inputMessage },
+          assistantReply,
+        ]);
+        setConversationHistory((prev) => [
+          ...prev,
+          { role: "user", parts: [{ text: inputMessage }] },
+          { role: "model", parts: [{ text: assistantReply.content }] },
+        ]);
+        setInputMessage("");
+        return;
+      }
+    }
 
     const userMessage: ChatMessage = { role: "user", content: inputMessage };
     setChatMessages((prev: ChatMessage[]) => [...prev, userMessage]);
@@ -80,7 +139,7 @@ export default function ChatPanel() {
         setChatMessages((prev: ChatMessage[]) => [...prev, assistantReply]);
 
         if (result.updatedHistory) {
-          setConversationHistory(result.updatedHistory);
+          setConversationHistory(normalizeHistory(result.updatedHistory));
         } else {
           setConversationHistory((prev) => [
             ...prev,
