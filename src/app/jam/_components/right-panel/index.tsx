@@ -477,7 +477,7 @@ export default function RightPanel() {
   }, [view, isTakePlaying, stopTakePlayback]);
 
   return (
-    <div className="relative mb-4 flex h-full flex-col border-4 border-black bg-amber-200 p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+    <div className="relative mb-4 flex h-full flex-col border-4 border-black bg-amber-200 p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] gap-2">
       <div
         ref={containerRef}
         className="pointer-events-none absolute h-0 w-0 overflow-hidden opacity-0"

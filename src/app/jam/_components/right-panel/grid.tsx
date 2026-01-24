@@ -22,7 +22,7 @@ export default function RightPanelGrid({
   const chordSlices = parsedChords.length > 0 ? parsedChords : FALLBACK_CHORDS;
 
   return (
-    <div className="flex h-full flex-1 overflow-hidden rounded-xl border-4 border-black bg-gradient-to-b from-white to-emerald-100 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+    <div className="flex h-full flex-1 overflow-hidden rounded-xl border-4 border-black bg-gradient-to-b from-white to-emerald-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
       <div className="grid h-full w-full auto-rows-fr grid-cols-2 gap-3 p-3 md:grid-cols-4">
         {chordSlices.map((slice, index) => {
           const isActive = index === highlightedIndex % chordSlices.length;
