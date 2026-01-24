@@ -40,7 +40,7 @@ type AnalysisMutation = {
 };
 
 type AnalysisApi = {
-  analysis: {
+  chat: {
     analyzeRecording: {
       useMutation: () => AnalysisMutation;
     };
@@ -152,7 +152,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
 
   const analysisMutation = (
     api as unknown as AnalysisApi
-  ).analysis.analyzeRecording.useMutation();
+  ).chat.analyzeRecording.useMutation();
 
   // Parse chords from Strudel code
   const parseChords = (code: string) => {

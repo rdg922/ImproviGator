@@ -3,10 +3,13 @@ import { GoogleGenAI, Type, type Content, type Part } from "@google/genai";
 import { Chord, Scale } from "tonal";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { env } from "~/env";
+import { analyzeRecording } from "~/services/analysisService";
 
 const MAX_GEMINI_ATTEMPTS = 5;
 
-const CHAT_SYSTEM_INSTRUCTION = `You are a helpful music assistant for a music improvisation learning tool. Your goal is to help young guitarists learn how to improvise. 
+const CHAT_SYSTEM_INSTRUCTION = `You are a helpful music assistant for a music improvisation learning tool. Your goal is to help young guitarists learn how to improvise.
+
+When responding to recorded solos, start with a high-level overview (sparse vs full, in-key vs out-of-key, resolution strength), then share 2–3 concrete improvement starting points and invite questions.
 
 You can:
 1. Edit the backing track (Strudel code)
@@ -441,21 +444,24 @@ async function callGeminiChatAPI(
     userMessage,
   });
 
-  const systemInstruction = `${CHAT_SYSTEM_INSTRUCTION}
+    const prompt = `${CHAT_SYSTEM_INSTRUCTION}
 
-Current session context:
-- Key: ${context.key}
-- Modality: ${context.modality}
-- Saved chords: ${context.savedChords.join(", ")}
-- Current backing track code:
-\`\`\`
-${context.strudelCode}
-\`\`\``;
+  Current session context:
+  - Key: ${context.key}
+  - Modality: ${context.modality}
+  - Saved chords: ${context.savedChords.join(", ")}
+  - Current backing track code:
+  \`\`\`
+  ${context.strudelCode}
+  \`\`\`
+
+  User message:
+  ${userMessage}`;
 
   const conversation: ConversationEntry[] =
     context.conversationHistory && context.conversationHistory.length > 0
-      ? [...context.conversationHistory, createUserPrompt(userMessage)]
-      : [createUserPrompt(userMessage)];
+      ? [...context.conversationHistory, createUserPrompt(prompt)]
+      : [createUserPrompt(prompt)];
 
   const allToolResults: ToolResult[] = [];
 
@@ -470,7 +476,6 @@ ${context.strudelCode}
       model: "gemini-2.5-flash",
       contents: conversation,
       config: {
-        systemInstruction,
         tools: [
           {
             functionDeclarations: [
@@ -595,5 +600,32 @@ export const chatRouter = createTRPCRouter({
           updatedHistory: input.conversationHistory ?? [],
         };
       }
+    }),
+  analyzeRecording: publicProcedure
+    .input(
+      z.object({
+        midiData: z.array(
+          z.object({
+            pitch: z.number().int(),
+            velocity: z.number().int(),
+            startTime: z.number(),
+            duration: z.number(),
+          }),
+        ),
+        parsedChords: z.array(
+          z.object({
+            chord: z.union([z.string(), z.array(z.string())]),
+            index: z.number(),
+          }),
+        ),
+        tempo: z.number().min(30).max(260),
+        timeSignature: z.string(),
+        key: z.string(),
+        modality: z.string(),
+        skillLevel: z.enum(["beginner", "intermediate", "advanced"]).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      return analyzeRecording(input);
     }),
 });

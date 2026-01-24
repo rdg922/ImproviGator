@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useJamSession } from "../context/jam-session-context";
 import type {
   ChatMessage,
@@ -9,11 +9,6 @@ import type {
 import { api } from "~/trpc/react";
 import Chord from "~/app/_components/react-chords/react-chords/src/Chord";
 import { GUITAR_INSTRUMENT, getChordData } from "~/lib/chord-utils";
-import {
-  buildChordScaleRecommendation,
-  buildChordTimeline,
-  buildChordToneRecommendation,
-} from "~/lib/audio/harmonic-analysis";
 
 export default function ChatPanel() {
   const {
@@ -31,10 +26,6 @@ export default function ChatPanel() {
     setConversationHistory,
     analysisResult,
     analysisStatus,
-    midiData,
-    parsedChords,
-    tempo,
-    timeSignature,
     recording,
   } = useJamSession();
   const [inputMessage, setInputMessage] = useState("");
@@ -72,139 +63,39 @@ export default function ChatPanel() {
       }));
   };
 
-  const barSummaries = useMemo(() => {
-    if (!analysisResult || midiData.length === 0) return [];
-
-    const beatsPerBar = Number(timeSignature.split("/")[0]) || 4;
-    const beatDurationSeconds = tempo > 0 ? 60 / tempo : 0.5;
-    const barDurationSeconds = beatsPerBar * beatDurationSeconds;
-
-    const totalDurationSeconds =
-      midiData.reduce(
-        (max, note) => Math.max(max, (note.startTime + note.duration) / 1000),
-        0,
-      ) || 0;
-
-    if (totalDurationSeconds === 0 || barDurationSeconds === 0) return [];
-
-    const totalBars = Math.max(
-      1,
-      Math.ceil(totalDurationSeconds / barDurationSeconds),
-    );
-
-    const chordTimeline = buildChordTimeline(
-      parsedChords,
-      totalDurationSeconds,
-    );
-
-    const contextsByBar = new Map<
-      number,
-      typeof analysisResult.analysis.noteContexts
-    >();
-    analysisResult.analysis.noteContexts.forEach((context) => {
-      const barIndex = Math.floor(context.beatIndex / beatsPerBar);
-      const existing = contextsByBar.get(barIndex) ?? [];
-      existing.push(context);
-      contextsByBar.set(barIndex, existing);
-    });
-
-    return Array.from({ length: totalBars }, (_, barIndex) => {
-      const barStart = barIndex * barDurationSeconds;
-      const barContexts = contextsByBar.get(barIndex) ?? [];
-      const totalNotes = barContexts.length;
-      const chordToneNotes = barContexts.filter((c) => c.isChordTone).length;
-      const scaleToneNotes = barContexts.filter((c) => c.isScaleTone).length;
-      const strongBeatNotes = barContexts.filter((c) => c.isStrongBeat).length;
-      const strongBeatChordTones = barContexts.filter(
-        (c) => c.isStrongBeat && c.isChordTone,
-      ).length;
-
-      const chordToneRatio = totalNotes > 0 ? chordToneNotes / totalNotes : 0;
-      const scaleToneRatio = totalNotes > 0 ? scaleToneNotes / totalNotes : 0;
-      const strongBeatRatio =
-        strongBeatNotes > 0 ? strongBeatChordTones / strongBeatNotes : 0;
-
-      const noteList = Array.from(
-        new Set(barContexts.map((context) => context.pitchClass)),
-      ).join(", ");
-
-      const chordSlot = chordTimeline.length
-        ? (chordTimeline.find(
-            (slot) =>
-              barStart >= slot.startTimeSeconds &&
-              barStart < slot.endTimeSeconds,
-          ) ?? chordTimeline[chordTimeline.length - 1])
-        : undefined;
-
-      const chordLabel = chordSlot?.chords.join(" / ") || "No chord";
-      const primaryChord = chordSlot?.chords?.[0] ?? "";
-
-      let positives = "Nice use of space.";
-      if (totalNotes > 0) {
-        if (chordToneRatio >= 0.6) {
-          positives = "Good chord-tone targeting.";
-        } else if (scaleToneRatio >= 0.7) {
-          positives = "Strong scale-tone coherence.";
-        } else if (strongBeatRatio >= 0.5) {
-          positives = "Solid downbeat resolution.";
-        } else {
-          positives = "Adventurous colors—aim for clearer resolution.";
-        }
-      }
-
-      let alternatives = "";
-      if (primaryChord) {
-        const chordToneSuggestion = buildChordToneRecommendation(primaryChord);
-        const scaleSuggestion = buildChordScaleRecommendation(
-          primaryChord,
-          key,
-          modality,
-        );
-        alternatives = ` Try targeting ${chordToneSuggestion.chordTones.join(
-          ", ",
-        )}; or explore ${scaleSuggestion.root} ${scaleSuggestion.scaleName} (${scaleSuggestion.scaleNotes.join(
-          ", ",
-        )}).`;
-      }
-
-      return {
-        role: "assistant" as const,
-        content: `Bar ${barIndex + 1} — Chords: ${chordLabel}. Notes: ${
-          noteList || "rest"
-        }. ${positives}${alternatives}`,
-      };
-    });
-  }, [
-    analysisResult,
-    midiData,
-    parsedChords,
-    tempo,
-    timeSignature,
-    key,
-    modality,
-  ]);
-
   useEffect(() => {
     if (analysisStatus !== "success" || !analysisResult || !recording) return;
-    if (barSummaries.length === 0) return;
-
     const analysisKey = `${recording.timestamp.toString()}-${analysisResult.analysis.metrics.totalNotes}`;
     if (lastAutoAnalysisRef.current === analysisKey) return;
 
     lastAutoAnalysisRef.current = analysisKey;
-    setChatMessages((prev: ChatMessage[]) => [...prev, ...barSummaries]);
+    const toolSuggestions = analysisResult.recommendations.toolResults
+      .map((tool) => tool.suggestion)
+      .filter((suggestion) => suggestion.trim().length > 0);
+    const summary = analysisResult.recommendations.summary?.trim();
+    const messageLines = [summary || "Here’s your take summary."];
+    if (toolSuggestions.length > 0) {
+      messageLines.push("\nSuggestions:");
+      toolSuggestions.forEach((suggestion) => {
+        messageLines.push(`- ${suggestion}`);
+      });
+    }
+    const autoMessage: ChatMessage = {
+      role: "assistant",
+      content: messageLines.join("\n"),
+    };
+    setChatMessages((prev: ChatMessage[]) => [...prev, autoMessage]);
     setConversationHistory((prev) => [
       ...prev,
-      ...barSummaries.map((message) => ({
+      {
         role: "model" as const,
-        parts: [{ text: message.content }],
-      })),
+        parts: [{ text: autoMessage.content }],
+      },
     ]);
   }, [
     analysisStatus,
     analysisResult,
     recording,
-    barSummaries,
     setChatMessages,
     setConversationHistory,
   ]);
@@ -297,15 +188,26 @@ export default function ChatPanel() {
           }
         }
 
+        const suggestedChords = (result.toolResults ?? []).flatMap((tr) => {
+          if (tr.type !== "show_chord" || !("chord" in tr)) {
+            return [];
+          }
+
+          const chord = typeof tr.chord === "string" ? tr.chord : "";
+          if (!chord) return [];
+
+          const voicingIndex =
+            "voicingIndex" in tr && typeof tr.voicingIndex === "number"
+              ? tr.voicingIndex
+              : undefined;
+
+          return [{ chord, voicingIndex }];
+        });
+
         const assistantReply: ChatMessage = {
           role: "assistant",
           content: result.response,
-          suggestedChords: result.toolResults
-            ?.filter((tr) => tr.type === "show_chord")
-            .map((tr) => ({
-              chord: tr.chord,
-              voicingIndex: tr.voicingIndex,
-            })),
+          suggestedChords,
         };
         setChatMessages((prev: ChatMessage[]) => [...prev, assistantReply]);
 
