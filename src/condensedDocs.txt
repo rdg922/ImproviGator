@@ -1,0 +1,283 @@
+Here is a comprehensive summary of the Strudel JavaScript API, formatted as a reference guide for a chatbot designed to generate jazz backing tracks.
+Strudel API Reference for Jazz Generation
+1. Core Concepts & Syntax
+
+Strudel is a live-coding environment based on TidalCycles. It uses a functional chainable API. Basic Syntax: function("patternString").chainFunction(value) Stacking: Use $: to play multiple patterns (drums, bass, piano) simultaneously.
+The "Cycle"
+
+    Time is measured in cycles (default 1 cycle/sec).
+
+    Jazz tempo is set using setcpm(bpm/4) (assuming 4 beats per cycle).
+
+    Example: setcpm(120/4) sets the tempo to 120 BPM in 4/4 time.
+
+2. Mini-Notation (Rhythm Definition)
+
+The "Mini-Notation" is a string format used to define rhythms inside functions like s() (sound) or note().
+Symbol	Name	Description	Jazz Use Case
+space	Sequence	s("bd hh") plays bass drum then hi-hat in one cycle.	Basic swing beat skeleton.
+[]	Subdivision	s("bd [hh sd] bd hh") groups events into one step.	Comping patterns, double-time fills.
+{}	Polymeter	s("{bd hh sd}%4") aligns to pulse rather than cycle.	Polyrhythmic drumming.
+*	Speed Up	s("hh*2") plays hh twice in the space of one.	Ride cymbal patterns.
+/	Slow Down	s("bd/2") plays once over two cycles.	Long chord changes.
+< >	Alternation	note("<c e g b>") plays one note per cycle.	Chord progressions (one chord per bar).
+?	Degrade	s("sd?0.4") removes event with 40% probability.	Ghost notes on snare.
+(3,8)	Euclidean	s("rim(3,8)") distributes 3 hits over 8 steps.	Latin-jazz / Bossa Nova clave rhythms.
+,	Polyphony	note("c,e,g") plays notes together.	Chords (manual).
+.	Foot	Separates steps like [] but marks logical beat.	Complex time signatures.
+3. Drums & Percussion
+
+Drums are triggered using s() (sound) or sound(). Standard Drum Map:
+
+    bd: Bass Drum (Kick)
+
+    sd: Snare Drum
+
+    hh: Closed Hi-hat
+
+    oh: Open Hi-hat
+
+    rd: Ride Cymbal (Crucial for Jazz)
+
+    pd: Pedal Hi-hat
+
+    rim: Rimshot
+
+    cp: Clap
+
+    ht / mt / lt: Toms
+
+Sound Banks: Change the drum kit sample set using .bank().
+
+    Example: s("bd sd").bank("RolandTR808") (Electronic)
+
+    Note: For jazz, look for acoustic samples or General MIDI banks if available, otherwise use default/generic and apply dynamics.
+
+Dynamics (Ghost Notes): Use .gain() with mini-notation to create dynamic swing feels.
+
+    Example (Swing Ride Pattern):
+    JavaScript
+
+    // Classic "Spang-a-lang" ride pattern
+    // The *2 creates 8th note feel, gain creates accents
+    s("rd*2 . [~ rd] rd").gain("1 0.6 . 0.4 0.8")
+
+Example: Basic Swing Beat
+JavaScript
+
+// Stacked drums for a simple jazz beat
+$: s("rd*4").gain("1 0.6 0.8 0.6") // Ride cymbal time
+$: s("~ [~ pd] ~ [~ pd]") // Hi-hat pedal on 2 and 4
+$: s("bd ~ ~ ~") // Feathering the bass drum
+$: s("~ ~ sd?0.2 ~") // Occasional ghost snare
+
+4. Harmony: Chords & Voicings
+
+Strudel excels at complex harmony using the chord() and voicing() functions. This is the primary method for generating Piano and Guitar backing.
+Defining Chords
+
+Use chord() with a string of chord names.
+
+    Jazz Extensions: Supports 7, 9, 11, 13, alt, sus, dim, aug.
+
+    Symbols: ^ or M (Major), - or m (Minor), 7 (Dominant), o (Diminished).
+
+    Example: chord("Cm9 F13 Bb^7 G7alt")
+
+Automatic Voicings
+
+The .voicing() function automatically arranges chord notes for good voice leading (minimizing note movement between chords), simulating a real pianist.
+
+    Usage: chord("...").voicing()
+
+    Dictionaries: .dict('ireal') or .dict('lefthand') (good for rootless jazz piano voicings).
+
+    Anchoring: .anchor("c5") tells the voicing algorithm to center notes around C5.
+
+    Modes: .mode("root") forces root position (good for bass), .mode("duck") drops the top note.
+
+Scales & Keys
+
+Use scale() to map numbers to a specific musical scale.
+
+    Syntax: n("0 1 2 3").scale("C:minor")
+
+    Jazz Scales: dorian, mixolydian, lydian, locrian, whole_tone, altered, bebop.
+
+    Example: n("0 2 3 5").scale("F:mixolydian") (Bluesy pattern).
+
+Example: Jazz Piano Comping
+JavaScript
+
+// A II-V-I progression in C Major
+$: chord("<Dm9 G13 C^7 A7alt>")
+   .voicing()
+   .s("piano") // or "gm_electric_piano_1"
+   .room(0.5) // Reverb
+   .gain(0.7)
+   // Rhythmic comping pattern (Charleston rhythm)
+   .struct("x ~ ~ x ~ ~ ~ ~")
+
+5. Bass Lines
+
+For Jazz backing, the bass usually plays the root notes or a walking line.
+
+Extracting Roots: Use .rootNotes() to extract the root from a complex chord progression.
+
+    Example: chord("Cm7 F7").rootNotes().s("gm_acoustic_bass")
+
+Walking Bass (Walking Pattern): Use stepcat or mini-notation to create walking lines.
+JavaScript
+
+// Simple walking bass on a Blues
+$: note("c2 e2 g2 a2  f2 a2 c3 d3  c2 e2 g2 a2")
+   .s("gm_acoustic_bass")
+   .clip(1) // Detach notes slightly
+
+6. Time & Feel (The "Swing")
+
+Jazz requires "Swing" (shifting the off-beat 8th notes).
+
+The .swing() function:
+
+    Applies a shuffle feel to the pattern.
+
+    Value: 0.5 is straight, 0.6 - 0.7 is heavy swing.
+
+    Example: s("hh*8").swing(0.2)
+
+The .swingBy() function:
+
+    Allows swinging by a specific division (usually 1/3 for triplet feel).
+
+7. Useful Modifiers & Effects
+
+    .cat() / .seq(): Concatenates patterns (good for chaining A and B sections of a song).
+
+    .stack(): layers multiple sounds (Chord tones + Color tones).
+
+    .jux(rev): Plays the pattern in one ear and the reverse in the other (stereo width).
+
+    .off(time, function): Creates echoes or canon-like effects. Good for making a melody sound "thicker".
+
+        note("c").off(1/8, x=>x.add(7)) plays the note and then its 5th (7 semitones up) an 8th note later.
+
+    .sometimes(function): Applies a function randomly. Good for improv variety.
+
+        .sometimes(x => x.add(12)) (Random octave jumps).
+
+    .velocity() / .gain(): Crucial for humanizing.
+
+        .gain(rand.range(0.6, 0.9)) adds random volume fluctuation.
+
+    .lpf(freq): Low pass filter. Good for dulling bright piano samples to sit in the background.
+
+8. Full Backing Track Examples
+Example A: Slow Jazz Blues (12 Bar)
+
+This example demonstrates a slow blues feel with a ride cymbal, walking bass (roots), and piano chords.
+JavaScript
+
+// Set Tempo (Slow)
+setcpm(80/4)
+
+// 1. Drums (Ride pattern with hi-hat on 2 and 4)
+$: s("[rd ~ rd <~ rd>] , [~ pd]*2")
+   .bank("RolandTR909") // Replace with acoustic if available
+   .swing(0.2)          // Add Swing feel
+   .gain(0.6)
+
+// 2. Walking Bass (Roots of the blues)
+$: chord("<F7!4 Bb7!2 F7!2 C7 Bb7 F7 C7>")
+   .rootNotes()
+   .s("gm_acoustic_bass")
+   .struct("x*4")       // Quarter notes
+   .octave(2)           // Low register
+   .gain(0.8)
+
+// 3. Piano Comping (Guide tones/Voicings)
+$: chord("<F7!4 Bb7!2 F7!2 C7 Bb7 F7 C7>")
+   .voicing()
+   .mode("root")        // Root voicings
+   .s("piano")
+   .struct("~ x ~ x")   // Off-beat chords
+   .gain(0.5)
+   .room(0.8)           // Jazz club reverb
+
+Example B: Bossa Nova (Latin Jazz)
+
+This example uses Euclidean rhythms for the rimshot and a steady bass pattern.
+JavaScript
+
+// Set Tempo (Bossa)
+setcpm(130/4)
+
+// 1. Drums (Shaker and Rimshot Clave)
+$: stack(
+  s("hh*16").gain(0.3),                 // Fast shaker
+  s("rim(3,8,<0 2>)").gain(0.8),        // Clave pattern (Euclidean)
+  s("bd(<3 5>,16)").lpf(400)            // Soft heartbeat Kick
+)
+
+// 2. Bass (Dotted rhythm typical of Bossa)
+$: chord("<Dm9 G13 C^7 A7b13>")
+   .rootNotes()
+   .s("gm_acoustic_bass")
+   .struct("x ~ x@2 . ~ x@2 ~") // The Bossa Bass Rhythm
+   .octave(2)
+
+// 3. Piano (Syncopated)
+$: chord("<Dm9 G13 C^7 A7b13>")
+   .voicing()
+   .s("gm_electric_piano_1")
+   .struct("x ~ ~ x ~ x ~ ~")
+   .room(0.4)
+
+Example C: "Rhythm Changes" (Fast Swing)
+
+High tempo, comping, and walking bass.
+JavaScript
+
+setcpm(180/4)
+
+// A Section Chords of Rhythm Changes
+let chords = "<[Bb^7 G7] [Cm7 F7] [Bb^7 G7] [Cm7 F7] [Fm7 Bb7] [Eb^7 Ab7] [Dm7 G7] [Cm7 F7]>"
+
+// 1. Fast Swing Drums
+$: s("rd*4").gain("0.9 0.5 0.8 0.5") // Straight quarters on ride (fast)
+   .swing(0.1) // Light swing at high speeds
+
+// 2. Piano Comping (Randomized rhythm)
+$: chord(chords)
+   .voicing()
+   .s("piano")
+   .struct("x? ~ x? x?") // Randomly play beats
+   .gain(0.7)
+
+// 3. Walking Bass
+$: chord(chords)
+   .rootNotes()
+   .s("gm_acoustic_bass")
+   .struct("x*4") // Walking quarters
+   .octave(2)
+
+9. Common Error Checks for the Chatbot
+
+    Silence? Check if a sample name in s() exists. Use note() for melodic sounds, s() for drums.
+
+    No Chords? Ensure .voicing() is called after chord().
+
+    Timing off? Check setcpm calculation. Ideally bpm/4.
+
+    Syntax: Don't use standard JS arrays [] inside pattern strings. Use mini-notation [] inside the quotes.
+
+        Wrong: s(["bd", "sd"])
+
+        Right: s("bd sd")
+
+    Variables: You can define reusable patterns:
+    JavaScript
+
+let prog = "<Dm7 G7 C^7>"
+$: chord(prog).voicing().s("piano")
+$: chord(prog).rootNotes().s("bass")

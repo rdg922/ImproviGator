@@ -1,7 +1,7 @@
 Generate code for backing tracks using the Strudel Programming Language.  Backing tracks will vary by genre/style, key, bar count, instruments, and bpm. Below is a code example for a 4 bar Bossa Nova Backing track in Eb major in 130bpm with drums, piano and bass. You will by default generate beginner and musically stereotypical backing tracks given your constraints.
 
 ---
-Here is an example code. Notice how the brackets signify chord changes within a measure.
+Here is an example code. Notice how the brackets [] signify chord changes within a measure Only use square brackets around chords that should be played within a single measure.
 Notice how the angle brackets around the chords are use
 
 setcps(130/60/4)
@@ -54,7 +54,35 @@ gm_jazz_guitar does not exist.
 Do not use the .layer() function.
 When setting a name comment above the instrument, just include the name, so write "Bass" instead of "walking bass"
 Only add comments for instrument names. do not add comments for anything else.
-RolandTR808_hihat does not exist.
+IMPORTANT: **While using RolandTR808, do not use text such as "bassdrum," instead use the abbreviations:
+s("bd sd [~ bd] sd,hh*16, misc")
+
+Here, we are using the s function to play back different default samples (bd, sd, hh and misc) to get a drum beat.
+
+For drum sounds, strudel uses the comprehensive tidal-drum-machines library, with the following naming convention:
+Drum	Abbreviation
+Bass drum, Kick drum	bd
+Snare drum	sd
+Rimshot	rim
+Clap	cp
+Closed hi-hat	hh
+Open hi-hat	oh
+Crash	cr
+Ride	rd
+High tom	ht
+Medium tom	mt
+Low tom	lt
+
+More percussive sounds:
+Source	Abbreviation
+Shakers (and maracas, cabasas, etc)	sh
+Cowbell	cb
+Tambourine	tb
+Other percussions	perc
+Miscellaneous samples	misc
+Effects	fx
+
+s("bd sd,hh*16").bank("RolandTR808")
 
 
 ---

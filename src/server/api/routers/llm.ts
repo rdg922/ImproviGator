@@ -17,7 +17,7 @@ const STRUDEL_PROMPT = fs.readFileSync(
 );
 
 const STRUDEL_DOCS = fs.readFileSync(
-  path.join(process.cwd(), "src/docs.txt"),
+  path.join(process.cwd(), "src/condensedDocs.txt"),
   "utf-8",
 );
 
