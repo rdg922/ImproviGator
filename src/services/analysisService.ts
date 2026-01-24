@@ -102,7 +102,10 @@ export const analyzeRecording = async (
 
   const usedPitchClassList = Array.from(usedPitchClasses);
 
-  const chordCoverageMap = new Map<string, { total: number; matches: number }>();
+  const chordCoverageMap = new Map<
+    string,
+    { total: number; matches: number }
+  >();
   harmonicAnalysis.noteContexts.forEach((context) => {
     const chordName = context.chordNames[0] ?? "";
     if (!chordName) return;
@@ -159,8 +162,8 @@ export const analyzeRecording = async (
         coverage,
       };
     })
-    .filter(
-      (item): item is { scale: string; coverage: number } => Boolean(item),
+    .filter((item): item is { scale: string; coverage: number } =>
+      Boolean(item),
     )
     .filter((item) => item.coverage >= 0.7)
     .sort((a, b) => b.coverage - a.coverage)
