@@ -23,6 +23,14 @@ export default function LeftPanel() {
   } = useJamSession();
 
   const [mode, setMode] = useState<LeftMode>("Create");
+  
+  // Local state for form inputs (before generation)
+  const [localKey, setLocalKey] = useState(key);
+  const [localModality, setLocalModality] = useState(modality);
+  const [localTempo, setLocalTempo] = useState(tempo);
+  const [localTimeSignature, setLocalTimeSignature] = useState(timeSignature);
+  const [localDescription, setLocalDescription] = useState(description);
+  
   const [chatMessages, setChatMessages] = useState<
     Array<{ role: "user" | "assistant"; content: string; suggestedChord?: string }>
   >([
@@ -32,6 +40,17 @@ export default function LeftPanel() {
     },
   ]);
   const [inputMessage, setInputMessage] = useState("");
+
+  const handleGenerate = () => {
+    // Update context with local values when Generate is clicked
+    setKey(localKey);
+    setModality(localModality);
+    setTempo(localTempo);
+    setTimeSignature(localTimeSignature);
+    setDescription(localDescription);
+    
+    // TODO: Call LLM generation logic here
+  };
 
   const handleSendMessage = () => {
     if (!inputMessage.trim()) return;
@@ -100,8 +119,8 @@ export default function LeftPanel() {
                     Key
                   </label>
                   <select 
-                    value={key}
-                    onChange={(e) => setKey(e.target.value)}
+                    value={localKey}
+                    onChange={(e) => setLocalKey(e.target.value)}
                     className="w-full border-4 border-black bg-yellow-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     <option>C</option>
                     <option>C#</option>
@@ -124,8 +143,8 @@ export default function LeftPanel() {
                     Modality
                   </label>
                   <select 
-                    value={modality}
-                    onChange={(e) => setModality(e.target.value)}
+                    value={localModality}
+                    onChange={(e) => setLocalModality(e.target.value)}
                     className="w-full border-4 border-black bg-pink-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     <option>Major</option>
                     <option>Minor</option>
@@ -145,8 +164,8 @@ export default function LeftPanel() {
                 </label>
                 <input
                   type="number"
-                  value={tempo}
-                  onChange={(e) => setTempo(Number(e.target.value))}
+                  value={localTempo}
+                  onChange={(e) => setLocalTempo(Number(e.target.value))}
                   min={40}
                   max={240}
                   className="w-full border-4 border-black bg-blue-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
@@ -162,9 +181,9 @@ export default function LeftPanel() {
                   {["2/4", "3/4", "4/4", "5/4"].map((sig) => (
                     <button
                       key={sig}
-                      onClick={() => setTimeSignature(sig)}
+                      onClick={() => setLocalTimeSignature(sig)}
                       className={`flex-1 border-4 border-black px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
-                        timeSignature === sig
+                        localTimeSignature === sig
                           ? "bg-cyan-400 text-black"
                           : "bg-white text-gray-700"
                       }`}
@@ -182,15 +201,17 @@ export default function LeftPanel() {
                 </label>
                 <textarea
                   rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  value={localDescription}
+                  onChange={(e) => setLocalDescription(e.target.value)}
                   placeholder="e.g., Jazzy, upbeat, latin vibes..."
                   className="w-full border-4 border-black bg-green-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-0"
                 ></textarea>
               </div>
 
               {/* Generate Button */}
-              <button className="w-full border-4 border-black bg-orange-400 px-6 py-3 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none">
+              <button 
+                onClick={handleGenerate}
+                className="w-full border-4 border-black bg-orange-400 px-6 py-3 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none">
                 Generate
               </button>
             </div>
