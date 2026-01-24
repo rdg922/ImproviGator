@@ -91,7 +91,7 @@ export default function ScaleDiagram() {
   }, [rootPitchClass, scalePitchClasses]);
 
   return (
-    <div className="flex h-full flex-col border-4 border-black bg-white p-3 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+    <div className="flex h-full flex-col border-4 border-black bg-white p-3">
       <h2 className="text-xl font-black">
         Scale Guide - {key} {modality}
       </h2>
