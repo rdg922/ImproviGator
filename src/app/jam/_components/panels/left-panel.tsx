@@ -1,23 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useJamSession } from "../context/jam-session-context";
 import ChatPanel from "./chat-panel";
 import CreatePanel from "./create-panel";
 import TrackSettingsPanel from "./track-settings-panel";
 
-type LeftMode = "Create" | "Chat" | "TrackSettings";
-
 export default function LeftPanel() {
-  const [mode, setMode] = useState<LeftMode>("Create");
+  const { leftPanelMode, setLeftPanelMode } = useJamSession();
 
   return (
     <div className="flex h-full flex-col border-4 border-black bg-white shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
       {/* Mode Selector */}
       <div className="flex border-b-4 border-black">
         <button
-          onClick={() => setMode("Create")}
+          onClick={() => setLeftPanelMode("Create")}
           className={`flex-1 border-r-4 border-black px-4 py-1 font-bold transition-colors ${
-            mode === "Create"
+            leftPanelMode === "Create"
               ? "bg-blue-400 text-black"
               : "bg-white text-gray-600 hover:bg-gray-100"
           }`}
@@ -25,9 +23,9 @@ export default function LeftPanel() {
           Create
         </button>
         <button
-          onClick={() => setMode("Chat")}
+          onClick={() => setLeftPanelMode("Chat")}
           className={`flex-1 border-r-4 border-black px-4 py-1 font-bold transition-colors ${
-            mode === "Chat"
+            leftPanelMode === "Chat"
               ? "bg-green-400 text-black"
               : "bg-white text-gray-600 hover:bg-gray-100"
           }`}
@@ -35,9 +33,9 @@ export default function LeftPanel() {
           Chat
         </button>
         <button
-          onClick={() => setMode("TrackSettings")}
+          onClick={() => setLeftPanelMode("TrackSettings")}
           className={`flex-1 px-4 py-1 font-bold transition-colors ${
-            mode === "TrackSettings"
+            leftPanelMode === "TrackSettings"
               ? "bg-purple-400 text-black"
               : "bg-white text-gray-600 hover:bg-gray-100"
           }`}
@@ -48,11 +46,13 @@ export default function LeftPanel() {
 
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
-        {mode === "Create" && (
-          <CreatePanel onGenerationComplete={() => setMode("TrackSettings")} />
+        {leftPanelMode === "Create" && (
+          <CreatePanel
+            onGenerationComplete={() => setLeftPanelMode("TrackSettings")}
+          />
         )}
-        {mode === "Chat" && <ChatPanel />}
-        {mode === "TrackSettings" && <TrackSettingsPanel />}
+        {leftPanelMode === "Chat" && <ChatPanel />}
+        {leftPanelMode === "TrackSettings" && <TrackSettingsPanel />}
       </div>
     </div>
   );

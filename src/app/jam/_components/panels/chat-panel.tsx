@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useJamSession } from "../context/jam-session-context";
 import type {
   ChatMessage,
@@ -8,10 +8,12 @@ import type {
 } from "../context/jam-session-context";
 import { api } from "~/trpc/react";
 import Chord from "~/app/_components/react-chords/react-chords/src/Chord";
+import { GUITAR_INSTRUMENT, getChordData } from "~/lib/chord-utils";
 import {
-  GUITAR_INSTRUMENT,
-  getChordData,
-} from "~/lib/chord-utils";
+  buildChordScaleRecommendation,
+  buildChordTimeline,
+  buildChordToneRecommendation,
+} from "~/lib/audio/harmonic-analysis";
 
 export default function ChatPanel() {
   const {
@@ -27,9 +29,17 @@ export default function ChatPanel() {
     setChatMessages,
     conversationHistory,
     setConversationHistory,
+    analysisResult,
+    analysisStatus,
+    midiData,
+    parsedChords,
+    tempo,
+    timeSignature,
+    recording,
   } = useJamSession();
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const lastAutoAnalysisRef = useRef<string | null>(null);
 
   const chatMutation = api.chat.sendMessage.useMutation();
 
@@ -52,6 +62,143 @@ export default function ChatPanel() {
         parts: Array.isArray(entry.parts) ? entry.parts : [],
       }));
   };
+
+  const barSummaries = useMemo(() => {
+    if (!analysisResult || midiData.length === 0) return [];
+
+    const beatsPerBar = Number(timeSignature.split("/")[0]) || 4;
+    const beatDurationSeconds = tempo > 0 ? 60 / tempo : 0.5;
+    const barDurationSeconds = beatsPerBar * beatDurationSeconds;
+
+    const totalDurationSeconds =
+      midiData.reduce(
+        (max, note) => Math.max(max, (note.startTime + note.duration) / 1000),
+        0,
+      ) || 0;
+
+    if (totalDurationSeconds === 0 || barDurationSeconds === 0) return [];
+
+    const totalBars = Math.max(
+      1,
+      Math.ceil(totalDurationSeconds / barDurationSeconds),
+    );
+
+    const chordTimeline = buildChordTimeline(
+      parsedChords,
+      totalDurationSeconds,
+    );
+
+    const contextsByBar = new Map<
+      number,
+      typeof analysisResult.analysis.noteContexts
+    >();
+    analysisResult.analysis.noteContexts.forEach((context) => {
+      const barIndex = Math.floor(context.beatIndex / beatsPerBar);
+      const existing = contextsByBar.get(barIndex) ?? [];
+      existing.push(context);
+      contextsByBar.set(barIndex, existing);
+    });
+
+    return Array.from({ length: totalBars }, (_, barIndex) => {
+      const barStart = barIndex * barDurationSeconds;
+      const barContexts = contextsByBar.get(barIndex) ?? [];
+      const totalNotes = barContexts.length;
+      const chordToneNotes = barContexts.filter((c) => c.isChordTone).length;
+      const scaleToneNotes = barContexts.filter((c) => c.isScaleTone).length;
+      const strongBeatNotes = barContexts.filter((c) => c.isStrongBeat).length;
+      const strongBeatChordTones = barContexts.filter(
+        (c) => c.isStrongBeat && c.isChordTone,
+      ).length;
+
+      const chordToneRatio = totalNotes > 0 ? chordToneNotes / totalNotes : 0;
+      const scaleToneRatio = totalNotes > 0 ? scaleToneNotes / totalNotes : 0;
+      const strongBeatRatio =
+        strongBeatNotes > 0 ? strongBeatChordTones / strongBeatNotes : 0;
+
+      const noteList = Array.from(
+        new Set(barContexts.map((context) => context.pitchClass)),
+      ).join(", ");
+
+      const chordSlot = chordTimeline.length
+        ? (chordTimeline.find(
+            (slot) =>
+              barStart >= slot.startTimeSeconds &&
+              barStart < slot.endTimeSeconds,
+          ) ?? chordTimeline[chordTimeline.length - 1])
+        : undefined;
+
+      const chordLabel = chordSlot?.chords.join(" / ") || "No chord";
+      const primaryChord = chordSlot?.chords?.[0] ?? "";
+
+      let positives = "Nice use of space.";
+      if (totalNotes > 0) {
+        if (chordToneRatio >= 0.6) {
+          positives = "Good chord-tone targeting.";
+        } else if (scaleToneRatio >= 0.7) {
+          positives = "Strong scale-tone coherence.";
+        } else if (strongBeatRatio >= 0.5) {
+          positives = "Solid downbeat resolution.";
+        } else {
+          positives = "Adventurous colors—aim for clearer resolution.";
+        }
+      }
+
+      let alternatives = "";
+      if (primaryChord) {
+        const chordToneSuggestion = buildChordToneRecommendation(primaryChord);
+        const scaleSuggestion = buildChordScaleRecommendation(
+          primaryChord,
+          key,
+          modality,
+        );
+        alternatives = ` Try targeting ${chordToneSuggestion.chordTones.join(
+          ", ",
+        )}; or explore ${scaleSuggestion.root} ${scaleSuggestion.scaleName} (${scaleSuggestion.scaleNotes.join(
+          ", ",
+        )}).`;
+      }
+
+      return {
+        role: "assistant" as const,
+        content: `Bar ${barIndex + 1} — Chords: ${chordLabel}. Notes: ${
+          noteList || "rest"
+        }. ${positives}${alternatives}`,
+      };
+    });
+  }, [
+    analysisResult,
+    midiData,
+    parsedChords,
+    tempo,
+    timeSignature,
+    key,
+    modality,
+  ]);
+
+  useEffect(() => {
+    if (analysisStatus !== "success" || !analysisResult || !recording) return;
+    if (barSummaries.length === 0) return;
+
+    const analysisKey = `${recording.timestamp.toString()}-${analysisResult.analysis.metrics.totalNotes}`;
+    if (lastAutoAnalysisRef.current === analysisKey) return;
+
+    lastAutoAnalysisRef.current = analysisKey;
+    setChatMessages((prev: ChatMessage[]) => [...prev, ...barSummaries]);
+    setConversationHistory((prev) => [
+      ...prev,
+      ...barSummaries.map((message) => ({
+        role: "model" as const,
+        parts: [{ text: message.content }],
+      })),
+    ]);
+  }, [
+    analysisStatus,
+    analysisResult,
+    recording,
+    barSummaries,
+    setChatMessages,
+    setConversationHistory,
+  ]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
@@ -210,7 +357,7 @@ export default function ChatPanel() {
               </div>
             </div>
             {message.suggestedChords && message.suggestedChords.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2 justify-start">
+              <div className="mt-2 flex flex-wrap justify-start gap-2">
                 {message.suggestedChords.map((suggestion, idx) => {
                   const chordData = getChordData(
                     suggestion.chord,
@@ -219,7 +366,7 @@ export default function ChatPanel() {
                   return (
                     <div
                       key={`${suggestion.chord}-${idx}`}
-                      className="flex flex-col items-center border-4 border-black bg-yellow-200 p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-48"
+                      className="flex w-48 flex-col items-center border-4 border-black bg-yellow-200 p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                     >
                       <div className="mb-1 text-xs font-black">
                         {suggestion.chord}
