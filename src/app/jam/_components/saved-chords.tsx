@@ -64,10 +64,13 @@ export default function SavedChords() {
   const { savedChords, removeSavedChord } = useJamSession();
 
   return (
-    <div className="flex h-full flex-col border-4 border-black bg-white shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+    <div className="flex h-full flex-col border-4 border-black bg-white">
       {/* Header */}
-      <div className="border-b-4 border-black bg-pink-300 px-6 py-3 text-xl font-black">
-        Saved Chords
+      <div className="flex items-center justify-between border-b-4 border-black bg-pink-300 px-4 py-2">
+        <span className="text-lg font-black">Saved Chords</span>
+        <button className="border-2 border-black bg-green-400 px-3 py-1 text-sm font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
+          + Add
+        </button>
       </div>
 
       {/* Chord List */}
@@ -107,13 +110,6 @@ export default function SavedChords() {
             })}
           </div>
         )}
-      </div>
-
-      {/* Add Manual Chord Button */}
-      <div className="border-t-4 border-black p-3">
-        <button className="w-full border-4 border-black bg-green-400 px-4 py-2 font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none">
-          + Add Chord
-        </button>
       </div>
     </div>
   );

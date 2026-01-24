@@ -5,7 +5,7 @@ import Guitar from "react-guitar";
 import { Note as TonalNote, Scale } from "tonal";
 import { useJamSession } from "./jam-session-context";
 
-const STANDARD_TUNING = [40, 45, 50, 55, 59, 64];
+const STANDARD_TUNING = [64, 59, 55, 50, 45, 40]; // High E to Low E
 const FRET_RANGE = { from: 0, amount: 12 } as const;
 const MODALITY_TO_SCALE: Record<string, string> = {
   Major: "major",

@@ -16,7 +16,7 @@ export default function LeftPanel() {
       <div className="flex border-b-4 border-black">
         <button
           onClick={() => setMode("Create")}
-          className={`flex-1 border-r-4 border-black px-4 py-3 font-bold transition-colors ${
+          className={`flex-1 border-r-4 border-black px-4 py-1 font-bold transition-colors ${
             mode === "Create"
               ? "bg-blue-400 text-black"
               : "bg-white text-gray-600 hover:bg-gray-100"
@@ -26,7 +26,7 @@ export default function LeftPanel() {
         </button>
         <button
           onClick={() => setMode("Chat")}
-          className={`flex-1 border-r-4 border-black px-4 py-3 font-bold transition-colors ${
+          className={`flex-1 border-r-4 border-black px-4 py-1 font-bold transition-colors ${
             mode === "Chat"
               ? "bg-green-400 text-black"
               : "bg-white text-gray-600 hover:bg-gray-100"
@@ -36,13 +36,13 @@ export default function LeftPanel() {
         </button>
         <button
           onClick={() => setMode("TrackSettings")}
-          className={`flex-1 px-4 py-3 font-bold transition-colors ${
+          className={`flex-1 px-4 py-1 font-bold transition-colors ${
             mode === "TrackSettings"
               ? "bg-purple-400 text-black"
               : "bg-white text-gray-600 hover:bg-gray-100"
           }`}
         >
-          Track Settings
+          Settings
         </button>
       </div>
 

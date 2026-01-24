@@ -2,40 +2,112 @@
 
 import { useState } from "react";
 import { useJamSession } from "./jam-session-context";
-
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-  suggestedChord?: string;
-};
-
-const INITIAL_MESSAGES: ChatMessage[] = [
-  {
-    role: "assistant",
-    content:
-      "Great playing! Let's analyze your improvisation. Need any chord suggestions?",
-  },
-];
+import type { ChatMessage } from "./jam-session-context";
+import { api } from "~/trpc/react";
 
 export default function ChatPanel() {
-  const { addSavedChord } = useJamSession();
-  const [chatMessages, setChatMessages] =
-    useState<ChatMessage[]>(INITIAL_MESSAGES);
+  const {
+    addSavedChord,
+    setStrudelCode,
+    setKey,
+    setModality,
+    key,
+    modality,
+    strudelCode,
+    savedChords,
+    chatMessages,
+    setChatMessages,
+    conversationHistory,
+    setConversationHistory,
+  } = useJamSession();
   const [inputMessage, setInputMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendMessage = () => {
-    if (!inputMessage.trim()) return;
+  const chatMutation = api.chat.sendMessage.useMutation();
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
 
     const userMessage: ChatMessage = { role: "user", content: inputMessage };
-    const assistantReply: ChatMessage = {
-      role: "assistant",
-      content:
-        "Based on your playing, I'd suggest trying a Dm7 chord. It fits the melodic patterns you used.",
-      suggestedChord: "Dm7",
-    };
-
-    setChatMessages([...chatMessages, userMessage, assistantReply]);
+    setChatMessages((prev: ChatMessage[]) => [...prev, userMessage]);
     setInputMessage("");
+    setIsLoading(true);
+
+    try {
+      const result = await chatMutation.mutateAsync({
+        message: inputMessage,
+        key,
+        modality,
+        strudelCode,
+        savedChords,
+        conversationHistory,
+      });
+
+      if (result.success) {
+        // Handle tool results
+        if (result.toolResults && result.toolResults.length > 0) {
+          console.log("Chat tool results:", result.toolResults);
+          for (const toolResult of result.toolResults) {
+            switch (toolResult.type) {
+              case "edit_backing_track":
+                console.log(
+                  "Updating strudel code to:",
+                  toolResult.newStrudelCode,
+                );
+                setStrudelCode(toolResult.newStrudelCode);
+                break;
+              case "show_scale":
+                console.log(
+                  "Updating scale to:",
+                  toolResult.key,
+                  toolResult.modality,
+                );
+                setKey(toolResult.key);
+                setModality(toolResult.modality);
+                break;
+              case "add_chord":
+                console.log("Adding chord:", toolResult.chord);
+                addSavedChord(toolResult.chord);
+                break;
+            }
+          }
+        }
+
+        const assistantReply: ChatMessage = {
+          role: "assistant",
+          content: result.response,
+        };
+        setChatMessages((prev: ChatMessage[]) => [...prev, assistantReply]);
+
+        // Update conversation history (simplified - you may want to store full Gemini format)
+        setConversationHistory((prev) => [
+          ...prev,
+          {
+            role: "user",
+            parts: [{ text: inputMessage }],
+          },
+          {
+            role: "model",
+            parts: [{ text: result.response }],
+          },
+        ]);
+      } else {
+        const errorReply: ChatMessage = {
+          role: "assistant",
+          content: result.error ?? "Sorry, I encountered an error.",
+        };
+        setChatMessages((prev: ChatMessage[]) => [...prev, errorReply]);
+      }
+    } catch (error) {
+      const errorReply: ChatMessage = {
+        role: "assistant",
+        content: "Sorry, I encountered an error processing your request.",
+      };
+      setChatMessages((prev: ChatMessage[]) => [...prev, errorReply]);
+      console.error("Chat error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleHeartChord = (chord: string) => {
@@ -78,6 +150,13 @@ export default function ChatPanel() {
             )}
           </div>
         ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="border-4 border-black bg-green-300 p-3 text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              Thinking...
+            </div>
+          </div>
+        )}
       </div>
       <div className="border-t-4 border-black p-3">
         <div className="flex gap-2">
@@ -88,10 +167,12 @@ export default function ChatPanel() {
             onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
             placeholder="Ask for feedback..."
             className="flex-1 border-4 border-black bg-yellow-100 px-3 py-2 font-bold focus:ring-0 focus:outline-none"
+            disabled={isLoading}
           />
           <button
             onClick={handleSendMessage}
-            className="border-4 border-black bg-pink-400 px-4 py-2 font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
+            disabled={isLoading}
+            className="border-4 border-black bg-pink-400 px-4 py-2 font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none disabled:opacity-50"
           >
             Send
           </button>

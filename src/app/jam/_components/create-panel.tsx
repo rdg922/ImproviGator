@@ -127,8 +127,8 @@ export default function CreatePanel({
   };
 
   return (
-    <div className="flex h-full flex-col p-4">
-      <div className="flex-1 space-y-4 overflow-y-auto">
+    <div className="flex h-full flex-col p-3">
+      <div className="flex-1 space-y-3 overflow-y-auto">
         <div className="flex flex-row justify-stretch gap-x-5">
           <div className="grow">
             <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
@@ -161,32 +161,34 @@ export default function CreatePanel({
           </div>
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
-            Tempo (BPM)
-          </label>
-          <input
-            type="number"
-            value={localTempo}
-            onChange={(e) => setLocalTempo(Number(e.target.value))}
-            min={40}
-            max={240}
-            className="w-full border-4 border-black bg-blue-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-          />
-        </div>
+        <div className="flex flex-row justify-stretch gap-x-5">
+          <div className="grow">
+            <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
+              Tempo (BPM)
+            </label>
+            <input
+              type="number"
+              value={localTempo}
+              onChange={(e) => setLocalTempo(Number(e.target.value))}
+              min={40}
+              max={240}
+              className="w-full border-4 border-black bg-blue-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+            />
+          </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
-            Bars (1-64)
-          </label>
-          <input
-            type="number"
-            min={1}
-            max={64}
-            value={localBars}
-            onChange={(e) => setLocalBars(Number(e.target.value))}
-            className="w-full border-4 border-black bg-purple-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-          />
+          <div className="grow">
+            <label className="mb-2 block text-sm font-bold tracking-wide uppercase">
+              Bars (1-64)
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={64}
+              value={localBars}
+              onChange={(e) => setLocalBars(Number(e.target.value))}
+              className="w-full border-4 border-black bg-purple-200 px-4 py-2 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+            />
+          </div>
         </div>
 
         <div>
@@ -228,7 +230,7 @@ export default function CreatePanel({
             Description (genre, mood, etc.)
           </label>
           <textarea
-            rows={3}
+            rows={2}
             value={localDescription}
             onChange={(e) => setLocalDescription(e.target.value)}
             placeholder="e.g., Jazzy, upbeat, latin vibes..."

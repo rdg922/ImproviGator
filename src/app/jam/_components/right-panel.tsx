@@ -1,36 +1,156 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import RightPanelGrid from "./right-panel/grid";
 import RightPanelRecording from "./right-panel/recording";
 import { useJamSession } from "./jam-session-context";
+import { StrudelMirror } from "@strudel/codemirror";
+import { evalScope } from "@strudel/core";
+import { transpiler } from "@strudel/transpiler";
+import {
+  getAudioContext,
+  initAudioOnFirstClick,
+  registerSynthSounds,
+  samples,
+  webaudioOutput,
+} from "@strudel/webaudio";
 
 type RightView = "Grid" | "Recording";
 
+let prebakePromise: Promise<void> | null = null;
+
+const loadSamples = () => {
+  const ds = "https://raw.githubusercontent.com/felixroos/dough-samples/main/";
+  const files = [
+    "tidal-drum-machines.json",
+    "piano.json",
+    "Dirt-Samples.json",
+    "EmuSP12.json",
+    "vcsl.json",
+    "mridangam.json",
+  ];
+  return Promise.all(files.map((file) => samples(`${ds}${file}`)));
+};
+
+const ensureAudioReady = () => {
+  if (!prebakePromise) {
+    prebakePromise = (async () => {
+      initAudioOnFirstClick();
+      const loadModules = evalScope(
+        import("@strudel/core"),
+        import("@strudel/draw"),
+        import("@strudel/mini"),
+        import("@strudel/tonal"),
+        import("@strudel/webaudio"),
+      );
+      const loadSoundfonts = import("@strudel/soundfonts").then(
+        (mod) => mod.registerSoundfonts?.() ?? Promise.resolve(),
+      );
+      await Promise.all([
+        loadModules,
+        registerSynthSounds(),
+        loadSoundfonts,
+        loadSamples(),
+      ]);
+    })();
+  }
+
+  return prebakePromise;
+};
+
 export default function RightPanel() {
-  const { recording, setRecording, setMidiData, chordTimeline } =
+  const { recording, setRecording, setMidiData, parsedChords, strudelCode } =
     useJamSession();
 
   const [view, setView] = useState<RightView>("Grid");
   const [currentChordIndex, setCurrentChordIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const strudelRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Initialize Strudel audio
+  useEffect(() => {
+    ensureAudioReady().then(() => {
+      setIsReady(true);
+    });
+  }, []);
+
+  // Initialize Strudel evaluator
+  useEffect(() => {
+    if (!containerRef.current || strudelRef.current) return;
+
+    const hiddenContainer = document.createElement("div");
+    hiddenContainer.style.display = "none";
+    document.body.appendChild(hiddenContainer);
+
+    const editor = new StrudelMirror({
+      root: hiddenContainer,
+      initialCode: "",
+      defaultOutput: webaudioOutput,
+      getTime: () => getAudioContext().currentTime,
+      transpiler,
+      prebake: ensureAudioReady,
+      onToggle: (started: boolean) => {
+        setIsPlaying(started);
+      },
+    });
+
+    strudelRef.current = editor;
+
+    return () => {
+      editor.stop?.();
+      editor.clear?.();
+      hiddenContainer.remove();
+      strudelRef.current = null;
+    };
+  }, []);
 
   const highlightedChordIndex = useMemo(() => {
-    const sliceCount = chordTimeline?.getSlices().length ?? 0;
+    const sliceCount = parsedChords.length;
     if (!sliceCount) {
       return 0;
     }
     return currentChordIndex % sliceCount;
-  }, [chordTimeline, currentChordIndex]);
+  }, [parsedChords, currentChordIndex]);
+
+  // Track chord progression based on playback time
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    const interval = setInterval(() => {
+      const chordCount = parsedChords.length || 4;
+      setCurrentChordIndex((prev) => (prev + 1) % chordCount);
+    }, 2000); // Update every 2 seconds - adjust based on tempo
+
+    return () => clearInterval(interval);
+  }, [isPlaying, parsedChords.length]);
 
   const handleReset = () => {
     setCurrentChordIndex(0);
+    if (strudelRef.current) {
+      strudelRef.current.stop?.();
+    }
     setIsPlaying(false);
   };
 
-  const handlePlay = () => {
-    setIsPlaying(!isPlaying);
+  const handlePlay = async () => {
+    if (!isReady || !strudelCode || !strudelRef.current) return;
+
+    if (isPlaying) {
+      strudelRef.current.stop?.();
+      setIsPlaying(false);
+    } else {
+      try {
+        await strudelRef.current.setCode?.(strudelCode);
+        await strudelRef.current.evaluate();
+        // isPlaying will be set by onToggle callback
+      } catch (err) {
+        console.error("Error playing Strudel:", err);
+        setIsPlaying(false);
+      }
+    }
   };
 
   const handleRecord = () => {
@@ -58,7 +178,8 @@ export default function RightPanel() {
   };
 
   return (
-    <div className="flex h-full flex-col border-4 border-black bg-amber-200 p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+    <div className="mb-4 flex h-full flex-col border-4 border-black bg-amber-200 p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+      <div ref={containerRef} style={{ display: "none" }} />
       {view === "Grid" ? (
         <RightPanelGrid highlightedIndex={highlightedChordIndex} />
       ) : (
@@ -76,7 +197,8 @@ export default function RightPanel() {
 
         <button
           onClick={handlePlay}
-          className={`border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none ${
+          disabled={!isReady || !strudelCode}
+          className={`border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 ${
             isPlaying ? "bg-red-400" : "bg-green-400"
           }`}
         >

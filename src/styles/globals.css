@@ -5,6 +5,38 @@
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
+/* Neubrutalist Scrollbars */
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+::-webkit-scrollbar-track {
+  background: white;
+  border: 3px solid black;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border: 3px solid black;
+  box-shadow: 3px 3px 0px 0px rgba(0, 0, 0, 1);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+::-webkit-scrollbar-corner {
+  background: white;
+  border: 3px solid black;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 white;
+}
+
 .scale-guide-board .finger {
   opacity: 1 !important;
   background: transparent;
@@ -29,7 +61,7 @@
   /* border: 3px solid #000; */
   font-size: 0.5rem;
   font-weight: 900;
-  text-transform: uppercase;
+  /* text-transform: uppercase; */
   display: inline-flex;
   align-items: center;
   justify-content: center;
