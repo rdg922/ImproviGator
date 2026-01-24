@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useJamSession } from "./jam-session-context";
+import { useJamSession } from "../context/jam-session-context";
 import { api } from "~/trpc/react";
 
 const KEY_OPTIONS = [

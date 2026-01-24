@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import RightPanelGrid from "./right-panel/grid";
-import RightPanelRecording from "./right-panel/recording";
-import { useJamSession } from "./jam-session-context";
+import RightPanelGrid from "./grid";
+import RightPanelRecording from "./recording";
+import { useJamSession } from "../context/jam-session-context";
 import { useAudioRecorder } from "~/hooks/useAudioRecorder";
 import {
   detectNotesFromAudio,
@@ -90,7 +90,6 @@ export default function RightPanel() {
     recording,
     setRecording,
     setMidiData,
-    midiData,
     parsedChords,
     strudelCode,
     strudelRef,
@@ -103,7 +102,7 @@ export default function RightPanel() {
   const [view, setView] = useState<RightView>("Grid");
   const [currentChordIndex, setCurrentChordIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMidiPlaying, setIsMidiPlaying] = useState(false);
+  const [isTakePlaying, setIsTakePlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [countdownBeats, setCountdownBeats] = useState<number | null>(null);
   const [countdownMode, setCountdownMode] = useState<"play" | "record" | null>(
@@ -118,11 +117,12 @@ export default function RightPanel() {
   const containerRef = useRef<HTMLDivElement>(null);
   const countdownTimerRef = useRef<number | null>(null);
   const recordingTimeoutRef = useRef<number | null>(null);
-  const midiPlaybackTimeoutRef = useRef<number | null>(null);
-  const midiOscillatorsRef = useRef<OscillatorNode[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [recordingAudioUrl, setRecordingAudioUrl] = useState<string | null>(
+    null,
+  );
   const [recordingResetToken, setRecordingResetToken] = useState(0);
-  const hasMidiNotes =
-    midiData.length > 0 || (recording?.notes?.length ?? 0) > 0;
+  const hasRecordingAudio = Boolean(recordingAudioUrl && recording);
 
   // Initialize Strudel audio
   useEffect(() => {
@@ -139,11 +139,33 @@ export default function RightPanel() {
       if (recordingTimeoutRef.current) {
         window.clearTimeout(recordingTimeoutRef.current);
       }
-      if (midiPlaybackTimeoutRef.current) {
-        window.clearTimeout(midiPlaybackTimeoutRef.current);
+      if (recordingAudioUrl) {
+        URL.revokeObjectURL(recordingAudioUrl);
       }
     };
-  }, []);
+  }, [recordingAudioUrl]);
+
+  const stopPlayback = () => {
+    if (strudelRef.current) {
+      strudelRef.current.stop?.();
+    }
+    setIsPlaying(false);
+  };
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleEnded = () => {
+      setIsTakePlaying(false);
+      stopPlayback();
+    };
+
+    audio.addEventListener("ended", handleEnded);
+    return () => {
+      audio.removeEventListener("ended", handleEnded);
+    };
+  }, [recordingAudioUrl, stopPlayback]);
 
   // Initialize Strudel evaluator
   useEffect(() => {
@@ -193,7 +215,8 @@ export default function RightPanel() {
   const handleReset = () => {
     if (view === "Recording") {
       setRecordingResetToken((prev) => prev + 1);
-      stopMidiPlayback();
+      stopTakePlayback();
+      stopPlayback();
       return;
     }
     setCurrentChordIndex(0);
@@ -270,75 +293,22 @@ export default function RightPanel() {
     }
   };
 
-  const stopPlayback = () => {
-    if (strudelRef.current) {
-      strudelRef.current.stop?.();
+  const stopTakePlayback = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
-    setIsPlaying(false);
-  };
-
-  const stopMidiPlayback = () => {
-    midiOscillatorsRef.current.forEach((osc) => {
-      try {
-        osc.stop();
-      } catch {
-        // ignore stop errors
-      }
-    });
-    midiOscillatorsRef.current = [];
-    if (midiPlaybackTimeoutRef.current) {
-      window.clearTimeout(midiPlaybackTimeoutRef.current);
-      midiPlaybackTimeoutRef.current = null;
-    }
-    setIsMidiPlaying(false);
-  };
-
-  const playRecordedMidi = () => {
-    const notes = midiData.length ? midiData : (recording?.notes ?? []);
-    if (!notes.length) return;
-    const context = getAudioContext();
-    const now = context.currentTime + 0.05;
-    let lastEndTime = now;
-    const oscillators: OscillatorNode[] = [];
-
-    notes.forEach((note) => {
-      const start = now + note.startTime / 1000;
-      const end = start + note.duration / 1000;
-      lastEndTime = Math.max(lastEndTime, end);
-
-      const osc = context.createOscillator();
-      const gain = context.createGain();
-      const velocity = Math.min(1, Math.max(0, note.velocity / 127));
-
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(
-        440 * Math.pow(2, (note.pitch - 69) / 12),
-        start,
-      );
-      gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(velocity * 0.3, start + 0.01);
-      gain.gain.linearRampToValueAtTime(0, end);
-      osc.connect(gain).connect(context.destination);
-      osc.start(start);
-      osc.stop(end + 0.05);
-
-      oscillators.push(osc);
-    });
-
-    midiOscillatorsRef.current = oscillators;
-    setIsMidiPlaying(true);
-    midiPlaybackTimeoutRef.current = window.setTimeout(
-      () => {
-        stopMidiPlayback();
-      },
-      Math.max(0, (lastEndTime - now) * 1000) + 150,
-    );
+    setIsTakePlaying(false);
   };
 
   const startAudioCapture = async () => {
     try {
       setMidiData([]);
       setRecording(null);
+      if (recordingAudioUrl) {
+        URL.revokeObjectURL(recordingAudioUrl);
+        setRecordingAudioUrl(null);
+      }
       await startRecording();
     } catch (err) {
       console.error(
@@ -353,6 +323,8 @@ export default function RightPanel() {
 
     try {
       const audioBlob = await stopRecording();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      setRecordingAudioUrl(audioUrl);
       const audioBuffer = await loadAudioFromBlob(audioBlob);
       let detectedNotes = await detectNotesFromAudio(
         audioBuffer,
@@ -434,11 +406,23 @@ export default function RightPanel() {
 
   const handlePlay = async () => {
     if (view === "Recording") {
-      if (isMidiPlaying) {
-        stopMidiPlayback();
+      if (isTakePlaying) {
+        stopTakePlayback();
+        stopPlayback();
         return;
       }
-      playRecordedMidi();
+      if (!recordingAudioUrl || !recording) return;
+      await startPlayback();
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        try {
+          await audioRef.current.play();
+          setIsTakePlaying(true);
+        } catch (err) {
+          console.error("Error playing take audio:", err);
+          stopPlayback();
+        }
+      }
       return;
     }
     if (!isReady || !strudelCode || !strudelRef.current) return;
@@ -467,6 +451,12 @@ export default function RightPanel() {
   const handleToggleView = () => {
     setView(view === "Grid" ? "Recording" : "Grid");
   };
+
+  useEffect(() => {
+    if (view === "Grid" && isTakePlaying) {
+      stopTakePlayback();
+    }
+  }, [view, isTakePlaying, stopTakePlayback]);
 
   return (
     <div className="relative mb-4 flex h-full flex-col border-4 border-black bg-amber-200 p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
@@ -500,26 +490,29 @@ export default function RightPanel() {
       ) : (
         <RightPanelRecording resetToken={recordingResetToken} />
       )}
+      <audio ref={audioRef} src={recordingAudioUrl ?? undefined} />
 
       {/* Unified Controls - Always visible */}
       <div className="flex justify-center gap-4">
-        <button
-          onClick={handleReset}
-          className="border-4 border-black bg-orange-300 px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none"
-        >
-          ⏮ Reset
-        </button>
+        {view !== "Recording" && (
+          <button
+            onClick={handleReset}
+            className="border-4 border-black bg-orange-300 px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none"
+          >
+            ⏮ Reset
+          </button>
+        )}
 
         <button
           onClick={handlePlay}
           disabled={
             view === "Recording"
-              ? !hasMidiNotes
+              ? !hasRecordingAudio
               : !isReady || !strudelCode || countdownMode !== null
           }
           className={`border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 ${
             view === "Recording"
-              ? isMidiPlaying
+              ? isTakePlaying
                 ? "bg-red-400"
                 : "bg-green-400"
               : isPlaying
@@ -528,9 +521,9 @@ export default function RightPanel() {
           }`}
         >
           {view === "Recording"
-            ? isMidiPlaying
+            ? isTakePlaying
               ? "⏸ Pause"
-              : "▶ Play MIDI"
+              : "▶ Play Take"
             : isPlaying
               ? "⏸ Pause"
               : "▶ Play"}

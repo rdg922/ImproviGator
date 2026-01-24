@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useJamSession } from "./jam-session-context";
+import { useJamSession } from "../context/jam-session-context";
 
 interface AnalysisModeProps {
   onSaveChord: (chord: string) => void;

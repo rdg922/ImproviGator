@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
-import { useJamSession } from "../jam-session-context";
+import { useJamSession } from "../context/jam-session-context";
 
 const formatDuration = (ms: number) => `${(ms / 1000).toFixed(2)}s`;
 

@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useJamSession } from "./jam-session-context";
-import type { ChatMessage, ConversationEntry } from "./jam-session-context";
+import { useJamSession } from "../context/jam-session-context";
+import type {
+  ChatMessage,
+  ConversationEntry,
+} from "../context/jam-session-context";
 import { api } from "~/trpc/react";
 import Chord from "~/app/_components/react-chords/react-chords/src/Chord";
 import {
