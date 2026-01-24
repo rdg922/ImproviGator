@@ -35,15 +35,11 @@ const sanitizeStrudelCode = (code: string) => {
 };
 
 const DEFAULT_PITCH_PARAMS: PitchDetectionParams = {
-  frameThreshold: 0.4,
-  onsetThreshold: 0.35,
-  minNoteLength: 8,
-};
-
-const FALLBACK_PITCH_PARAMS: PitchDetectionParams = {
-  frameThreshold: 0.25,
-  onsetThreshold: 0.25,
-  minNoteLength: 5,
+  noteSegmentation: 0.5,
+  modelConfidenceThreshold: 0.3,
+  minPitchHz: 0,
+  maxPitchHz: 3000,
+  minNoteLengthMs: 11,
 };
 
 const loadSamples = () => {
@@ -122,6 +118,7 @@ export default function RightPanel() {
   const [recordingAudioUrl, setRecordingAudioUrl] = useState<string | null>(
     null,
   );
+  const [takePlaybackMs, setTakePlaybackMs] = useState(0);
   const [recordingResetToken, setRecordingResetToken] = useState(0);
   const hasRecordingAudio = Boolean(recordingAudioUrl && recording);
 
@@ -167,6 +164,23 @@ export default function RightPanel() {
       audio.removeEventListener("ended", handleEnded);
     };
   }, [recordingAudioUrl, stopPlayback]);
+
+  useEffect(() => {
+    if (!isTakePlaying || !audioRef.current) {
+      setTakePlaybackMs(0);
+      return;
+    }
+
+    let animationFrame = 0;
+    const update = () => {
+      if (!audioRef.current) return;
+      setTakePlaybackMs(audioRef.current.currentTime * 1000);
+      animationFrame = window.requestAnimationFrame(update);
+    };
+
+    animationFrame = window.requestAnimationFrame(update);
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [isTakePlaying, recordingAudioUrl]);
 
   // Initialize Strudel evaluator
   useEffect(() => {
@@ -332,7 +346,7 @@ export default function RightPanel() {
       if (detectedNotes.length === 0) {
         detectedNotes = await detectNotesFromAudio(
           audioBuffer,
-          FALLBACK_PITCH_PARAMS,
+          DEFAULT_PITCH_PARAMS,
         );
       }
       const midiNotes = detectedNotes.map((note) => ({
@@ -416,7 +430,7 @@ export default function RightPanel() {
         return;
       }
       if (!recordingAudioUrl || !recording) return;
-      await startPlayback();
+      // await startPlayback();
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
         try {
@@ -492,7 +506,11 @@ export default function RightPanel() {
       {view === "Grid" ? (
         <RightPanelGrid highlightedIndex={highlightedChordIndex} />
       ) : (
-        <RightPanelRecording resetToken={recordingResetToken} />
+        <RightPanelRecording
+          resetToken={recordingResetToken}
+          currentTimeMs={takePlaybackMs}
+          isPlaying={isTakePlaying}
+        />
       )}
       <audio ref={audioRef} src={recordingAudioUrl ?? undefined} />
 

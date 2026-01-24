@@ -35,6 +35,8 @@ export interface ConversationEntry {
   parts: Array<{ text?: string }>;
 }
 
+export type LeftPanelMode = "Create" | "Chat" | "TrackSettings";
+
 type AnalysisMutation = {
   mutateAsync: (input: AnalysisInput) => Promise<AnalysisOutput>;
 };
@@ -51,6 +53,8 @@ interface TrackSetting {
   gain: number;
 }
 interface JamSessionContextType {
+  leftPanelMode: LeftPanelMode;
+  setLeftPanelMode: (mode: LeftPanelMode) => void;
   // Musical parameters
   key: string;
   setKey: (key: string) => void;
@@ -118,6 +122,7 @@ $: n("0 - 1 -").set(chords).mode("root:g2").voicing().gain(1)`;
 
 export function JamSessionProvider({ children }: { children: ReactNode }) {
   const strudelRef = useRef<any>(null);
+  const [leftPanelMode, setLeftPanelMode] = useState<LeftPanelMode>("Create");
   const [key, setKey] = useState("C");
   const [modality, setModality] = useState("Major");
   const [tempo, setTempo] = useState(120);
@@ -252,6 +257,12 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
     }
   }, [recording, midiData.length]);
 
+  useEffect(() => {
+    if (analysisStatus === "success") {
+      setLeftPanelMode("Chat");
+    }
+  }, [analysisStatus]);
+
   const setStrudelCode = (code: string) => {
     setStrudelCodeState(code);
   };
@@ -347,6 +358,8 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   return (
     <JamSessionContext.Provider
       value={{
+        leftPanelMode,
+        setLeftPanelMode,
         key,
         setKey,
         modality,
