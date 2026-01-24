@@ -17,6 +17,11 @@ interface Recording {
   timestamp: Date;
 }
 
+export interface SavedChord {
+  name: string;
+  voicingIndex: number;
+}
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -49,8 +54,9 @@ interface JamSessionContextType {
   setMidiData: (data: MidiNote[]) => void;
 
   // Saved chords
-  savedChords: string[];
-  addSavedChord: (chord: string) => void;
+  savedChords: SavedChord[];
+  addSavedChord: (chord: string, voicingIndex?: number) => void;
+  updateSavedChordVoicing: (chord: string, voicingIndex: number) => void;
   removeSavedChord: (chord: string) => void;
 
   // Generated strudel code
@@ -97,10 +103,10 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   const [timeSignature, setTimeSignature] = useState("4/4");
   const [recording, setRecording] = useState<Recording | null>(null);
   const [midiData, setMidiData] = useState<MidiNote[]>([]);
-  const [savedChords, setSavedChords] = useState<string[]>([
-    "Cmaj7",
-    "Am7",
-    "Dm7",
+  const [savedChords, setSavedChords] = useState<SavedChord[]>([
+    { name: "Cmaj7", voicingIndex: 0 },
+    { name: "Am7", voicingIndex: 0 },
+    { name: "Dm7", voicingIndex: 0 },
   ]);
   const [strudelCode, setStrudelCodeState] = useState(DEFAULT_STRUDEL_CODE);
   const [tracks, setTracks] = useState<TrackSetting[]>([]);
@@ -122,22 +128,22 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   // Parse chords from Strudel code
   const parseChords = (code: string) => {
     // Match chord() with backticks, double quotes, or single quotes
-    const chordLineMatch = code.match(
-      /let\s+chords\s*=\s*chord\(([`"])([^`"']+)\1\)/s,
-    );
+    const chordLineMatch =
+      /let\s+chords\s*=\s*chord\(([`"])([^`"']+)\1\)/s.exec(code);
     if (!chordLineMatch) return [];
 
-    let rawContent = chordLineMatch[2];
+    let rawContent = chordLineMatch[2] ?? "";
+    if (!rawContent) return [];
 
     // Try to extract content within < > to ignore multipliers like *4
     // If no angle brackets, use the entire content
-    const angleMatch = rawContent.match(/<([^>]+)>/s);
-    if (angleMatch) {
+    const angleMatch = /<([^>]+)>/s.exec(rawContent);
+    if (angleMatch?.[1]) {
       rawContent = angleMatch[1];
     }
 
     // Remove comments (// single-line comments)
-    let chordContent = rawContent
+    const chordContent = rawContent
       .split("\n")
       .map((line) => {
         const commentIndex = line.indexOf("//");
@@ -152,7 +158,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
 
     while (i < chordContent.length) {
       // Skip whitespace
-      while (i < chordContent.length && /\s/.test(chordContent[i])) {
+      while (i < chordContent.length && /\s/.test(chordContent[i] ?? "")) {
         i++;
       }
       if (i >= chordContent.length) break;
@@ -164,13 +170,13 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
         let buffer = "";
 
         while (i < chordContent.length && chordContent[i] !== "]") {
-          if (/\s/.test(chordContent[i])) {
+          if (/\s/.test(chordContent[i] ?? "")) {
             if (buffer) {
               groupChords.push(buffer);
               buffer = "";
             }
           } else {
-            buffer += chordContent[i];
+            buffer += chordContent[i] ?? "";
           }
           i++;
         }
@@ -183,8 +189,11 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
       } else {
         // Single chord
         let buffer = "";
-        while (i < chordContent.length && !/[\s\[\]]/.test(chordContent[i])) {
-          buffer += chordContent[i];
+        while (
+          i < chordContent.length &&
+          !/[\s\[\]]/.test(chordContent[i] ?? "")
+        ) {
+          buffer += chordContent[i] ?? "";
           i++;
         }
         if (buffer) {
@@ -215,14 +224,24 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const addSavedChord = (chord: string) => {
-    if (!savedChords.includes(chord)) {
-      setSavedChords([...savedChords, chord]);
-    }
+  const addSavedChord = (chord: string, voicingIndex = 0) => {
+    setSavedChords((prev) =>
+      prev.some((saved) => saved.name === chord)
+        ? prev
+        : [...prev, { name: chord, voicingIndex }],
+    );
+  };
+
+  const updateSavedChordVoicing = (chord: string, voicingIndex: number) => {
+    setSavedChords((prev) =>
+      prev.map((saved) =>
+        saved.name === chord ? { ...saved, voicingIndex } : saved,
+      ),
+    );
   };
 
   const removeSavedChord = (chord: string) => {
-    setSavedChords(savedChords.filter((c) => c !== chord));
+    setSavedChords((prev) => prev.filter((saved) => saved.name !== chord));
   };
 
   return (
@@ -242,6 +261,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
         setMidiData,
         savedChords,
         addSavedChord,
+        updateSavedChordVoicing,
         removeSavedChord,
         strudelCode,
         setStrudelCode,
