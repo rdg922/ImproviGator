@@ -125,10 +125,12 @@ export default function ChatPanel() {
         );
         const next = [...withoutThinking];
         if (index < blocks.length) {
+          const rawContent = blocks[index] ?? "";
+          const content = rawContent.replace(/^\*\s+/, "");
           next.push({
             id: `analysis-${analysisKey}-${index}`,
             role: "assistant",
-            content: blocks[index] ?? "",
+            content,
           });
         }
         return next;
@@ -138,7 +140,9 @@ export default function ChatPanel() {
       if (index < blocks.length) {
         analysisStreamRef.current = window.setTimeout(pushBlock, 450);
       } else {
-        const finalContent = blocks.join("\n\n");
+        const finalContent = blocks
+          .map((block) => block.replace(/^\*\s+/, ""))
+          .join("\n\n");
         setConversationHistory((prev) => [
           ...prev,
           {
