@@ -8,7 +8,6 @@ import { useAudioRecorder } from "~/hooks/useAudioRecorder";
 import {
   detectNotesFromAudio,
   loadAudioFromBlob,
-  type PitchDetectionParams,
 } from "~/lib/audio/pitch-detection";
 import { StrudelMirror } from "@strudel/codemirror";
 import { evalScope } from "@strudel/core";
@@ -32,14 +31,6 @@ const sanitizeStrudelCode = (code: string) => {
     return fenced[1].trim();
   }
   return trimmed;
-};
-
-const DEFAULT_PITCH_PARAMS: PitchDetectionParams = {
-  noteSegmentation: 0.5,
-  modelConfidenceThreshold: 0.3,
-  minPitchHz: 0,
-  maxPitchHz: 3000,
-  minNoteLengthMs: 11,
 };
 
 const loadSamples = () => {
@@ -106,11 +97,8 @@ export default function RightPanel() {
     null,
   );
   const [isReady, setIsReady] = useState(false);
-  const {
-    isRecording: isMicRecording,
-    startRecording,
-    stopRecording,
-  } = useAudioRecorder();
+  const { startRecording, stopRecording } = useAudioRecorder();
+  const autoStopRef = useRef<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const countdownTimerRef = useRef<number | null>(null);
   const recordingTimeoutRef = useRef<number | null>(null);
@@ -293,6 +281,7 @@ export default function RightPanel() {
       window.clearTimeout(recordingTimeoutRef.current);
       recordingTimeoutRef.current = null;
     }
+    autoStopRef.current = false;
   };
 
   const startPlayback = async () => {
@@ -325,12 +314,14 @@ export default function RightPanel() {
         setRecordingAudioUrl(null);
       }
       await startRecording();
+      return true;
     } catch (err) {
       console.error(
         "Error starting audio recording:",
         err instanceof Error ? err.message : err,
       );
     }
+    return false;
   };
 
   const stopAudioCapture = async (durationOverride?: number) => {
@@ -339,15 +330,9 @@ export default function RightPanel() {
       const audioUrl = URL.createObjectURL(audioBlob);
       setRecordingAudioUrl(audioUrl);
       const audioBuffer = await loadAudioFromBlob(audioBlob);
-      let detectedNotes = await detectNotesFromAudio(
-        audioBuffer,
-        DEFAULT_PITCH_PARAMS,
-      );
+      let detectedNotes = await detectNotesFromAudio(audioBuffer);
       if (detectedNotes.length === 0) {
-        detectedNotes = await detectNotesFromAudio(
-          audioBuffer,
-          DEFAULT_PITCH_PARAMS,
-        );
+        detectedNotes = await detectNotesFromAudio(audioBuffer);
       }
       const midiNotes = detectedNotes.map((note) => ({
         pitch: Math.round(note.pitchMidi),
@@ -378,6 +363,7 @@ export default function RightPanel() {
   };
 
   const finalizeRecording = async (durationOverride?: number) => {
+    autoStopRef.current = false;
     setIsRecording(false);
     stopPlayback();
     const midiNotes = await stopAudioCapture(durationOverride);
@@ -409,11 +395,24 @@ export default function RightPanel() {
           setIsRecording(true);
           void startPlayback();
           const playthroughMs = getPlaythroughDurationMs();
-          void startAudioCapture();
           clearRecordingTimeout();
-          recordingTimeoutRef.current = window.setTimeout(() => {
-            void finalizeRecording(playthroughMs);
-          }, playthroughMs);
+          autoStopRef.current = true;
+          void (async () => {
+            const startAt = performance.now();
+            const started = await startAudioCapture();
+            if (!started) {
+              autoStopRef.current = false;
+              setIsRecording(false);
+              return;
+            }
+            const elapsed = performance.now() - startAt;
+            const remainingMs = Math.max(0, playthroughMs - elapsed);
+            recordingTimeoutRef.current = window.setTimeout(() => {
+              if (autoStopRef.current) {
+                void finalizeRecording(playthroughMs);
+              }
+            }, remainingMs);
+          })();
         }
       } else {
         setCountdownBeats(remaining);
@@ -477,7 +476,7 @@ export default function RightPanel() {
   }, [view, isTakePlaying, stopTakePlayback]);
 
   return (
-    <div className="relative mb-4 flex h-full flex-col border-4 border-black bg-amber-200 p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] gap-2">
+    <div className="relative mb-4 flex h-full flex-col gap-2 border-4 border-black bg-amber-200 p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
       <div
         ref={containerRef}
         className="pointer-events-none absolute h-0 w-0 overflow-hidden opacity-0"
