@@ -306,6 +306,7 @@ export default function ChatPanel() {
               chord: tr.chord,
               voicingIndex: tr.voicingIndex,
             })),
+          suggestedResponses: parseSuggestedResponses(result.response),
         };
         setChatMessages((prev: ChatMessage[]) => [...prev, assistantReply]);
 
@@ -347,8 +348,101 @@ export default function ChatPanel() {
     addSavedChord(chord, voicingIndex);
   };
 
+  const parseSuggestedResponses = (response: string): string[] => {
+    const match = /---SUGGESTIONS---\n(.+?)\n---\n(.+?)(?:\n|$)/s.exec(response);
+    if (match && match[1] && match[2]) {
+      return [match[1].trim(), match[2].trim()];
+    }
+    return [];
+  };
+
+  const cleanResponseContent = (content: string): string => {
+    return content.replace(/---SUGGESTIONS---[\s\S]*$/, "").trim();
+  };
+
+  const handleSuggestedResponseClick = (suggestion: string) => {
+    setInputMessage(suggestion);
+    // Use setTimeout to ensure state is updated before sending
+    setTimeout(() => {
+      const userMessage: ChatMessage = { role: "user", content: suggestion };
+      setChatMessages((prev: ChatMessage[]) => [...prev, userMessage]);
+      setIsLoading(true);
+
+      chatMutation
+        .mutateAsync({
+          message: suggestion,
+          key,
+          modality,
+          strudelCode,
+          savedChords: savedChords.map((saved) => saved.name),
+          conversationHistory,
+        })
+        .then((result) => {
+          if (result.success) {
+            if (result.toolResults && result.toolResults.length > 0) {
+              for (const toolResult of result.toolResults) {
+                switch (toolResult.type) {
+                  case "edit_backing_track":
+                    setStrudelCode(toolResult.newStrudelCode);
+                    break;
+                  case "show_scale":
+                    setKey(toolResult.key);
+                    setModality(toolResult.modality);
+                    break;
+                  case "show_chord":
+                    break;
+                }
+              }
+            }
+
+            const assistantReply: ChatMessage = {
+              role: "assistant",
+              content: result.response,
+              suggestedChords: result.toolResults
+                ?.filter((tr) => tr.type === "show_chord")
+                .map((tr) => ({
+                  chord: tr.chord,
+                  voicingIndex: tr.voicingIndex,
+                })),
+              suggestedResponses: parseSuggestedResponses(result.response),
+            };
+            setChatMessages((prev: ChatMessage[]) => [...prev, assistantReply]);
+
+            if (result.updatedHistory) {
+              setConversationHistory(normalizeHistory(result.updatedHistory));
+            } else {
+              setConversationHistory((prev) => [
+                ...prev,
+                { role: "user", parts: [{ text: suggestion }] },
+                { role: "model", parts: [{ text: result.response }] },
+              ]);
+            }
+          } else {
+            const errorReply: ChatMessage = {
+              role: "assistant",
+              content: result.error ?? "Sorry, I encountered an error.",
+            };
+            setChatMessages((prev: ChatMessage[]) => [...prev, errorReply]);
+          }
+        })
+        .catch((error) => {
+          const errorReply: ChatMessage = {
+            role: "assistant",
+            content: "Sorry, I encountered an error processing your request.",
+          };
+          setChatMessages((prev: ChatMessage[]) => [...prev, errorReply]);
+          console.error("Chat error:", error);
+        })
+        .finally(() => {
+          setIsLoading(false);
+          setInputMessage("");
+        });
+    }, 0);
+  };
+
   const renderMessageContent = (content: string) => {
-    const parts = content.split(/(\*\*.*?\*\*)/g);
+    const cleanedContent = cleanResponseContent(content);
+    const parts = cleanedContent.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, index) => {
       if (part.startsWith("**") && part.endsWith("**")) {
         return (
@@ -421,6 +515,22 @@ export default function ChatPanel() {
                 })}
               </div>
             )}
+            {message.role === "assistant" &&
+              message.suggestedResponses &&
+              message.suggestedResponses.length > 0 &&
+              index === chatMessages.length - 1 && (
+                <div className="mt-1 flex flex-wrap justify-start gap-1.5">
+                  {message.suggestedResponses.map((suggestion, idx) => (
+                    <button
+                      key={`suggestion-${index}-${idx}`}
+                      onClick={() => handleSuggestedResponseClick(suggestion)}
+                      className="border-2 border-black/30 bg-cyan-200/40 px-2 py-1 text-xs font-semibold shadow-[2px_2px_0px_0px_rgba(0,0,0,0.15)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:bg-cyan-200/60 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.15)] active:translate-x-1 active:translate-y-1 active:shadow-none"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
           </div>
         ))}
         {isLoading && (

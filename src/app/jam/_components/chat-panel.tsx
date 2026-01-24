@@ -207,7 +207,7 @@ export default function ChatPanel() {
               </div>
             </div>
             {message.suggestedChords && message.suggestedChords.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2 justify-start">
+              <div className="mt-4 flex flex-wrap gap-2 justify-start">
                 {message.suggestedChords.map((suggestion, idx) => {
                   const chordData = getChordData(
                     suggestion.chord,

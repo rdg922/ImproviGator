@@ -28,6 +28,7 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   suggestedChords?: Array<{ chord: string; voicingIndex?: number }>;
+  suggestedResponses?: string[];
 }
 
 export interface ConversationEntry {

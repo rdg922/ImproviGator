@@ -3,8 +3,16 @@ import { GoogleGenAI, Type, type Content, type Part } from "@google/genai";
 import { Chord, Scale } from "tonal";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { env } from "~/env";
+import * as fs from "fs";
+import * as path from "path";
 
 const MAX_GEMINI_ATTEMPTS = 5;
+
+// Load Strudel documentation
+const STRUDEL_DOCS = fs.readFileSync(
+  path.join(process.cwd(), "src/condensedDocs.txt"),
+  "utf-8",
+);
 
 const CHAT_SYSTEM_INSTRUCTION = `You are a helpful music assistant for a music improvisation learning tool. Your goal is to help young guitarists learn how to improvise. 
 
@@ -16,15 +24,24 @@ You can:
 5. Offer music theory solo suggestions and feedback to accompany the current backing track. This can range from high level theory of using a single scale for starting, to utilizing certain arpeggios that fit over the V.
 
 IMPORTANT: Always use the appropriate tool when relevant:
-- When the user asks to make changes to the backing track → call edit_backing_track
+- When the user asks to make changes to the backing track → call edit_backing_track. If you need to understand Strudel syntax to make changes, first call query_strudel_docs to get the documentation.
 - When the user asks to see a scale or show notes on the fretboard → call show_scale
 - When suggesting chords, discussing chord progressions, or answering "what chord should I use" → call show_chord with the chord names
 - When the user asks about music theory (scales/modes/arpeggios) → call music_theory_query, then follow up with show_scale and/or show_chord as appropriate
 - When recommending chords for practice or soloing → call show_chord to display them
+- When you need to understand or modify Strudel code syntax → call query_strudel_docs to access the documentation
 
 For chord voicings from chords-db, you can optionally set a 0-based voicingIndex (default to 0).
 
-Be conversational and helpful. Understand musical terminology and context. When suggesting chords for the user to practice or try, ALWAYS use the show_chord tool so they can see the chord diagram and save it.`;
+Be conversational and helpful. Understand musical terminology and context. When suggesting chords for the user to practice or try, ALWAYS use the show_chord tool so they can see the chord diagram and save it.
+
+RESPONSE FORMAT: At the end of every response, add exactly 2 suggested follow-up questions or actions the user might want to take next. Format them like this:
+---SUGGESTIONS---
+Suggestion 1 text here
+---
+Suggestion 2 text here
+
+Keep suggestions short (5-10 words), natural, and relevant to the conversation. Examples: "Show me the G major scale", "Add more bass to the track", "What other chords work here?"`;
 
 // Tool declarations
 const EDIT_BACKING_TRACK_TOOL = {
@@ -137,6 +154,17 @@ const MUSIC_THEORY_TOOL = {
       },
     },
     required: ["queryType"],
+  },
+};
+
+const QUERY_STRUDEL_DOCS_TOOL = {
+  name: "query_strudel_docs",
+  description:
+    "Retrieves the complete Strudel documentation. Use this when you need to understand Strudel syntax, functions, or capabilities before editing the backing track code.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {},
+    required: [],
   },
 };
 
@@ -390,6 +418,14 @@ const handleToolCalls = async (
         break;
       }
 
+      case QUERY_STRUDEL_DOCS_TOOL.name: {
+        response = {
+          success: true,
+          documentation: STRUDEL_DOCS,
+        };
+        break;
+      }
+
       default: {
         response = {
           success: false,
@@ -478,6 +514,7 @@ ${context.strudelCode}
               SHOW_SCALE_TOOL,
               SHOW_CHORD_TOOL,
               MUSIC_THEORY_TOOL,
+              QUERY_STRUDEL_DOCS_TOOL,
             ],
           },
         ],
