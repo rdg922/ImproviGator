@@ -98,7 +98,8 @@ interface JamSessionContextType {
   // Analysis state
   analysisResult: AnalysisOutput | null;
   analysisStatus: "idle" | "loading" | "success" | "error";
-  runAnalysis: () => Promise<void>;
+  analysisError: string | null;
+  runAnalysis: (overrides?: Partial<AnalysisInput>) => Promise<void>;
 }
 
 const JamSessionContext = createContext<JamSessionContextType | undefined>(
@@ -107,8 +108,6 @@ const JamSessionContext = createContext<JamSessionContextType | undefined>(
 
 const DEFAULT_STRUDEL_CODE = `let chords = chord(\`<
 F7 Bb7 F7 [Cm7 F7]
-Bb7 Bo F7 [Am7 D7]
-Gm7 C7 [F7 D7] [Gm7 C7]
 >\`)
 // Piano
 $: n("7 8 [10 9] 8").set(chords).voicing().dec(.2).gain(1)
@@ -148,6 +147,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   const [analysisStatus, setAnalysisStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const analysisMutation = (
     api as unknown as AnalysisApi
@@ -155,13 +155,15 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
 
   // Parse chords from Strudel code
   const parseChords = (code: string) => {
-    // Match chord() with any variable name, using backticks, double quotes, or single quotes
-    const chordLineMatch = /let\s+\w+\s*=\s*chord\(([`"])([^`"']+)\1\)/s.exec(
-      code,
-    );
-    if (!chordLineMatch) return [];
+    // Match chord() with backticks, double quotes, or single quotes (with or without assignment)
+    const assignmentMatch =
+      /\b\w+\s*=\s*chord\(\s*([`"'])([\s\S]*?)\1\s*\)/s.exec(code);
+    const directMatch = /\bchord\(\s*([`"'])([\s\S]*?)\1\s*\)/s.exec(code);
+    const templateMatch = /\bchord\s*`([\s\S]*?)`/s.exec(code);
 
-    let rawContent = chordLineMatch[2] ?? "";
+    const chordLineMatch = assignmentMatch ?? directMatch;
+    let rawContent = chordLineMatch?.[2] ?? templateMatch?.[1] ?? "";
+    if (!rawContent) return [];
     if (!rawContent) return [];
 
     // Try to extract content within < > to ignore multipliers like *4
@@ -290,33 +292,54 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
     setSavedChords((prev) => prev.filter((saved) => saved.name !== chord));
   };
 
-  const runAnalysis = async () => {
+  const runAnalysis = async (overrides?: Partial<AnalysisInput>) => {
     if (analysisStatus === "loading") return;
 
     const effectiveMidiData =
-      midiData.length > 0 ? midiData : (recording?.notes ?? []);
+      overrides?.midiData ??
+      (midiData.length > 0 ? midiData : (recording?.notes ?? []));
+    const effectiveParsedChords = overrides?.parsedChords ?? parsedChords;
+    const effectiveTempo = overrides?.tempo ?? tempo;
+    const effectiveTimeSignature = overrides?.timeSignature ?? timeSignature;
+    const effectiveKey = overrides?.key ?? key;
+    const effectiveModality = overrides?.modality ?? modality;
 
-    if (effectiveMidiData.length === 0 || parsedChords.length === 0) {
+    if (effectiveMidiData.length === 0) {
       setAnalysisResult(null);
+      setAnalysisError("No recorded notes available to analyze.");
       setAnalysisStatus("error");
       return;
     }
 
+    if (effectiveParsedChords.length === 0) {
+      setAnalysisResult(null);
+      setAnalysisError(
+        "No chords parsed from the backing track. Make sure your Strudel code includes a chord() pattern.",
+      );
+      setAnalysisStatus("error");
+      return;
+    }
+
+    setAnalysisError(null);
     setAnalysisStatus("loading");
 
     try {
       const result = await analysisMutation.mutateAsync({
         midiData: effectiveMidiData,
-        parsedChords,
-        tempo,
-        timeSignature,
-        key,
-        modality,
+        parsedChords: effectiveParsedChords,
+        tempo: effectiveTempo,
+        timeSignature: effectiveTimeSignature,
+        key: effectiveKey,
+        modality: effectiveModality,
       });
       setAnalysisResult(result);
       setAnalysisStatus(result.success ? "success" : "error");
+      if (!result.success) {
+        setAnalysisError("Analysis failed on the server.");
+      }
     } catch (error) {
       setAnalysisStatus("error");
+      setAnalysisError("Analysis request failed.");
       console.error("Analysis error:", error);
     }
   };
@@ -354,6 +377,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
         setConversationHistory,
         analysisResult,
         analysisStatus,
+        analysisError,
         runAnalysis,
       }}
     >

@@ -8,8 +8,13 @@ interface AnalysisModeProps {
 }
 
 export default function AnalysisMode({ onSaveChord }: AnalysisModeProps) {
-  const { runAnalysis, analysisResult, analysisStatus, midiData } =
-    useJamSession();
+  const {
+    runAnalysis,
+    analysisResult,
+    analysisStatus,
+    analysisError,
+    midiData,
+  } = useJamSession();
   const [chatMessages, setChatMessages] = useState<
     Array<{
       role: "user" | "assistant";
@@ -225,6 +230,15 @@ export default function AnalysisMode({ onSaveChord }: AnalysisModeProps) {
                   )}
                 </ul>
               )}
+            </div>
+          )}
+
+          {analysisStatus === "error" && analysisError && (
+            <div className="mb-4 rounded-lg border-4 border-black bg-red-100 p-4 text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <p className="mb-1 text-xs font-black text-red-700 uppercase">
+                Analysis Error
+              </p>
+              <p>{analysisError}</p>
             </div>
           )}
 
