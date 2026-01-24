@@ -59,7 +59,7 @@ const ensureAudioReady = () => {
 };
 
 export default function RightPanel() {
-  const { recording, setRecording, setMidiData, parsedChords, strudelCode } =
+  const { recording, setRecording, setMidiData, parsedChords, strudelCode, strudelPlayerRef } =
     useJamSession();
 
   const [view, setView] = useState<RightView>("Grid");
@@ -67,7 +67,6 @@ export default function RightPanel() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isReady, setIsReady] = useState(false);
-  const strudelRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Initialize Strudel audio
@@ -79,7 +78,7 @@ export default function RightPanel() {
 
   // Initialize Strudel evaluator
   useEffect(() => {
-    if (!containerRef.current || strudelRef.current) return;
+    if (!containerRef.current || strudelPlayerRef.current) return;
 
     const editor = new StrudelMirror({
       root: containerRef.current,
@@ -93,14 +92,14 @@ export default function RightPanel() {
       },
     });
 
-    strudelRef.current = editor;
+    strudelPlayerRef.current = editor;
 
     return () => {
       editor.stop?.();
       editor.clear?.();
-      strudelRef.current = null;
+      strudelPlayerRef.current = null;
     };
-  }, []);
+  }, [strudelPlayerRef]);
 
   const highlightedChordIndex = useMemo(() => {
     const sliceCount = parsedChords.length;
@@ -124,22 +123,22 @@ export default function RightPanel() {
 
   const handleReset = () => {
     setCurrentChordIndex(0);
-    if (strudelRef.current) {
-      strudelRef.current.stop?.();
+    if (strudelPlayerRef.current) {
+      strudelPlayerRef.current.stop?.();
     }
     setIsPlaying(false);
   };
 
   const handlePlay = async () => {
-    if (!isReady || !strudelCode || !strudelRef.current) return;
+    if (!isReady || !strudelCode || !strudelPlayerRef.current) return;
 
     if (isPlaying) {
-      strudelRef.current.stop?.();
+      strudelPlayerRef.current.stop?.();
       setIsPlaying(false);
     } else {
       try {
-        await strudelRef.current.setCode?.(strudelCode);
-        await strudelRef.current.evaluate();
+        await strudelPlayerRef.current.setCode?.(strudelCode);
+        await strudelPlayerRef.current.evaluate();
         // isPlaying will be set by onToggle callback
       } catch (err) {
         console.error("Error playing Strudel:", err);

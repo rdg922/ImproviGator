@@ -24,11 +24,30 @@ const formatInstrumentLabel = (instrument: string) => {
 };
 
 export default function TrackSettingsPanel() {
-  const { strudelCode, setStrudelCode, tracks, setTrackGain } = useJamSession();
+  const { strudelCode, setStrudelCode, tracks, setTrackGain, strudelPlayerRef } = useJamSession();
   const [mode, setMode] = useState<PanelMode>("volume");
+  const [localCode, setLocalCode] = useState(strudelCode);
 
   const toggleMode = () => {
     setMode((current) => (current === "volume" ? "code" : "volume"));
+    if (mode === "volume") {
+      // Entering code mode, sync local with context
+      setLocalCode(strudelCode);
+    }
+  };
+
+  const handleApplyCode = async () => {
+    setStrudelCode(localCode);
+    
+    // Update the playing Strudel instance if it exists
+    if (strudelPlayerRef.current) {
+      try {
+        await strudelPlayerRef.current.setCode?.(localCode);
+        await strudelPlayerRef.current.evaluate();
+      } catch (err) {
+        console.error("Error updating Strudel code:", err);
+      }
+    }
   };
 
   return (
@@ -81,12 +100,20 @@ export default function TrackSettingsPanel() {
           )}
         </div>
       ) : (
-        <textarea
-          value={strudelCode}
-          onChange={(event) => setStrudelCode(event.target.value)}
-          placeholder="// Strudel code"
-          className="flex-1 border-4 border-black bg-gray-50 px-4 py-3 font-mono text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:ring-0 focus:outline-none"
-        ></textarea>
+        <div className="flex h-full flex-col gap-3">
+          <textarea
+            value={localCode}
+            onChange={(e) => setLocalCode(e.target.value)}
+            placeholder="// Edit Strudel code here..."
+            className="flex-1 border-4 border-black bg-gray-50 px-4 py-3 font-mono text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-0"
+          />
+          <button
+            onClick={handleApplyCode}
+            className="w-full border-4 border-black bg-orange-400 px-6 py-3 text-lg font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none"
+          >
+            Apply & Play
+          </button>
+        </div>
       )}
     </div>
   );
