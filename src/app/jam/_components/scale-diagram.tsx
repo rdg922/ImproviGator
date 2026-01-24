@@ -91,13 +91,13 @@ export default function ScaleDiagram() {
   }, [rootPitchClass, scalePitchClasses]);
 
   return (
-    <div className="flex h-full flex-col border-4 border-black bg-white p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+    <div className="flex h-full flex-col border-4 border-black bg-white p-3 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
       <h2 className="text-xl font-black">
         Scale Guide - {key} {modality}
       </h2>
 
       <Guitar
-        className="scale-guide-board flex-1 text-[0.5rem]"
+        className="scale-guide-board flex-1 text-[0.5rem] border-black border-4"
         strings={selectedFrets}
         onChange={setSelectedFrets}
         frets={FRET_RANGE}
