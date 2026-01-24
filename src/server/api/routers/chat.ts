@@ -26,12 +26,14 @@ You can:
 4. Answer basic music theory questions (scales, modes, arpeggios) using the music_theory_query tool
 5. Offer music theory solo suggestions and feedback to accompany the current backing track. This can range from high level theory of using a single scale for starting, to utilizing certain arpeggios that fit over the V.
 
+IMPORTANT NOTE NOTATION: When mentioning note names or chords, always use FLAT notation (♭) instead of sharps (#). Use Db, Eb, Gb, Ab, Bb instead of C#, D#, F#, G#, A#.
+
 IMPORTANT: Always use the appropriate tool when relevant:
 - When the user asks to make changes to the backing track → call edit_backing_track. If you need to understand Strudel syntax to make changes, first call query_strudel_docs to get the documentation.
 - When the user asks to see a scale or show notes on the fretboard → call show_scale
-- When suggesting chords, discussing chord progressions, or answering "what chord should I use" → call show_chord with the chord names
+- When suggesting chords, discussing chord progressions, or answering "what chord should I use" → call show_chord with the chord names (using flat notation)
 - When the user asks about music theory (scales/modes/arpeggios) → call music_theory_query, then follow up with show_scale and/or show_chord as appropriate
-- When recommending chords for practice or soloing → call show_chord to display them
+- When recommending chords for practice or soloing → call show_chord to display them (using flat notation)
 - When you need to understand or modify Strudel code syntax → call query_strudel_docs to access the documentation
 
 For chord voicings from chords-db, you can optionally set a 0-based voicingIndex (default to 0).
@@ -79,7 +81,7 @@ const SHOW_SCALE_TOOL = {
       key: {
         type: Type.STRING,
         description:
-          "The root note of the scale (e.g., C, D, E, F, G, A, B, with optional sharp # or flat b)",
+          "The root note of the scale (prefer flat notation: Db, Eb, Gb, Ab, Bb instead of C#, D#, F#, G#, A#)",
       },
       modality: {
         type: Type.STRING,
@@ -94,14 +96,14 @@ const SHOW_SCALE_TOOL = {
 const SHOW_CHORD_TOOL = {
   name: "show_chord",
   description:
-    "Shows one or more chords in the chat with chord diagrams. Use this when the user asks about chords, wants to see chord shapes, or needs chord suggestions. The user can then add them to saved chords manually. Optionally include voicingIndex (0-based) to choose a chord voicing from chords-db.",
+    "Shows one or more chords in the chat with chord diagrams. Use this when the user asks about chords, wants to see chord shapes, or needs chord suggestions. The user can then add them to saved chords manually. Optionally include voicingIndex (0-based) to choose a chord voicing from chords-db. Prefer flat notation (Db, Eb, Gb, Ab, Bb) over sharps.",
   parameters: {
     type: Type.OBJECT,
     properties: {
       chord: {
         type: Type.STRING,
         description:
-          "The chord name in standard notation (e.g., Cmaj7, Dm7, G, Am, E7)",
+          "The chord name in standard notation using flat notation (e.g., Dbmaj7, Ebm7, Gb, Abm, Bb7)",
       },
       chords: {
         type: Type.ARRAY,
@@ -109,7 +111,7 @@ const SHOW_CHORD_TOOL = {
           type: Type.STRING,
         },
         description:
-          "A list of chord names to show in standard notation (e.g., [Cmaj7, Dm7, G7]).",
+          "A list of chord names to show using flat notation (e.g., [Dbmaj7, Ebm7, Gb7]).",
       },
       voicingIndex: {
         type: Type.NUMBER,
@@ -132,7 +134,7 @@ const SHOW_CHORD_TOOL = {
 const MUSIC_THEORY_TOOL = {
   name: "music_theory_query",
   description:
-    "Answers music theory questions (scales, modes, arpeggios, chords) using Tonal. Use this to compute notes or intervals for a scale/chord/arpeggio.",
+    "Answers music theory questions (scales, modes, arpeggios, chords) using Tonal. Use this to compute notes or intervals for a scale/chord/arpeggio. Prefer flat notation.",
   parameters: {
     type: Type.OBJECT,
     properties: {
@@ -143,7 +145,7 @@ const MUSIC_THEORY_TOOL = {
       root: {
         type: Type.STRING,
         description:
-          "Root note for the scale (e.g., C, D#, Bb). Defaults to the current session key if omitted.",
+          "Root note using flat notation (e.g., C, Db, Eb, Gb, Ab, Bb). Defaults to the current session key if omitted.",
       },
       scale: {
         type: Type.STRING,
@@ -153,7 +155,7 @@ const MUSIC_THEORY_TOOL = {
       chord: {
         type: Type.STRING,
         description:
-          "Chord name for chord/arpeggio queries (e.g., Cmaj7, Dm7, G7).",
+          "Chord name for chord/arpeggio queries using flat notation (e.g., Dbmaj7, Ebm7, Gb7).",
       },
     },
     required: ["queryType"],

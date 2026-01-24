@@ -4,6 +4,8 @@ import Chord from "~/app/_components/react-chords/react-chords/src/Chord";
 import { Chord as TonalChord } from "tonal";
 import guitarDb from "~/app/_components/chords-db/lib/guitar.json";
 import { useJamSession } from "../context/jam-session-context";
+import { chordToFlat } from "~/lib/note-utils";
+import { normalizeDbKey } from "~/lib/chord-utils";
 
 const GUITAR_INSTRUMENT = {
   strings: 6,
@@ -33,9 +35,6 @@ type GuitarDb = {
 };
 
 const CHORD_DB = guitarDb as GuitarDb;
-
-const normalizeDbKey = (key: string) =>
-  key.includes("#") ? key.replace("#", "sharp") : key;
 
 const mapSuffixToDb = (suffix: string) => {
   const normalized = suffix.replace(/\s+/g, "").trim();
@@ -156,7 +155,7 @@ export default function SavedChords() {
                   className="group relative flex flex-col items-center justify-center border-4 border-black bg-yellow-200 p-1 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                 >
                   <div className="mb-0.5 text-xs font-black">
-                    {savedChord.name}
+                    {chordToFlat(savedChord.name)}
                   </div>
                   <div className="scale-75">
                     <Chord

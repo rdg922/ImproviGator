@@ -68,7 +68,6 @@ Clap	cp
 Closed hi-hat	hh
 Open hi-hat	oh
 Crash	cr
-Ride	rd
 High tom	ht
 Medium tom	mt
 Low tom	lt

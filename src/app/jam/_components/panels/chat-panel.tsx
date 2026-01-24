@@ -9,6 +9,7 @@ import type {
 import { api } from "~/trpc/react";
 import Chord from "~/app/_components/react-chords/react-chords/src/Chord";
 import { GUITAR_INSTRUMENT, getChordData } from "~/lib/chord-utils";
+import { chordToFlat } from "~/lib/note-utils";
 
 export default function ChatPanel() {
   const {
@@ -458,7 +459,7 @@ export default function ChatPanel() {
                       className="flex w-48 flex-col items-center border-4 border-black bg-yellow-200 p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                     >
                       <div className="mb-1 text-xs font-black">
-                        {suggestion.chord}
+                        {chordToFlat(suggestion.chord)}
                       </div>
                       <div className="scale-75">
                         <Chord

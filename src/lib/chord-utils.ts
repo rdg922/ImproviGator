@@ -30,8 +30,19 @@ type GuitarDb = {
 
 const CHORD_DB = guitarDb as GuitarDb;
 
-const normalizeDbKey = (key: string) =>
-  key.includes("#") ? key.replace("#", "sharp") : key;
+export const normalizeDbKey = (key: string) => {
+  // Convert flats to sharps for chord database lookup
+  const flatToSharp: Record<string, string> = {
+    Db: "C#",
+    Eb: "D#",
+    Gb: "F#",
+    Ab: "G#",
+    Bb: "A#",
+  };
+  
+  const sharpKey = flatToSharp[key] ?? key;
+  return sharpKey.includes("#") ? sharpKey.replace("#", "sharp") : sharpKey;
+};
 
 const mapSuffixToDb = (suffix: string) => {
   const normalized = suffix.replace(/\s+/g, "").trim();
