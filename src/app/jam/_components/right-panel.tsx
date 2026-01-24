@@ -19,6 +19,15 @@ type RightView = "Grid" | "Recording";
 
 let prebakePromise: Promise<void> | null = null;
 
+const sanitizeStrudelCode = (code: string) => {
+  const trimmed = code.trim();
+  const fenced = /^```(?:\w+)?\s*([\s\S]*?)\s*```$/m.exec(trimmed);
+  if (fenced?.[1]) {
+    return fenced[1].trim();
+  }
+  return trimmed;
+};
+
 const loadSamples = () => {
   const ds = "https://raw.githubusercontent.com/felixroos/dough-samples/main/";
   const files = [
@@ -138,7 +147,8 @@ export default function RightPanel() {
       setIsPlaying(false);
     } else {
       try {
-        await strudelRef.current.setCode?.(strudelCode);
+        const cleanedCode = sanitizeStrudelCode(strudelCode);
+        await strudelRef.current.setCode?.(cleanedCode);
         await strudelRef.current.evaluate();
         // isPlaying will be set by onToggle callback
       } catch (err) {
