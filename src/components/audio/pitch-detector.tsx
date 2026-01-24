@@ -33,12 +33,6 @@ export default function PitchDetector() {
   const [error, setError] = useState<string>("");
   const [selectedScale, setSelectedScale] = useState<string>("Major");
   const [rootNote, setRootNote] = useState<number>(0);
-  const [noteSegmentation, setNoteSegmentation] = useState<number>(0.5);
-  const [modelConfidenceThreshold, setModelConfidenceThreshold] =
-    useState<number>(0.3);
-  const [minNoteLengthMs, setMinNoteLengthMs] = useState<number>(11);
-  const [minPitchHz, setMinPitchHz] = useState<number>(0);
-  const [maxPitchHz, setMaxPitchHz] = useState<number>(3000);
 
   const { isRecording, startRecording, stopRecording } = useAudioRecorder();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -52,13 +46,6 @@ export default function PitchDetector() {
 
       const detectedNotes = await detectNotesFromAudio(
         audioBuffer,
-        {
-          noteSegmentation,
-          modelConfidenceThreshold,
-          minPitchHz,
-          maxPitchHz,
-          minNoteLengthMs,
-        },
         (p: number) => setProgress(Math.round(p * 100)),
       );
 
@@ -250,126 +237,6 @@ export default function PitchDetector() {
         </div>
       </div>
 
-      <div
-        style={{
-          marginBottom: "2rem",
-          padding: "1rem",
-          backgroundColor: "#1f2937",
-          borderRadius: "4px",
-          border: "1px solid #374151",
-        }}
-      >
-        <h3
-          style={{
-            fontSize: "1.125rem",
-            fontWeight: "600",
-            marginBottom: "1rem",
-            color: "#f9fafb",
-          }}
-        >
-          Detection Parameters
-        </h3>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: "1rem",
-          }}
-        >
-          <div>
-            <label
-              style={{
-                display: "block",
-                marginBottom: "0.5rem",
-                fontWeight: "500",
-                color: "#d1d5db",
-              }}
-            >
-              Model Confidence: {modelConfidenceThreshold.toFixed(2)}
-            </label>
-            <input
-              type="range"
-              min="0.1"
-              max="0.9"
-              step="0.05"
-              value={modelConfidenceThreshold}
-              onChange={(e) =>
-                setModelConfidenceThreshold(Number(e.target.value))
-              }
-              style={{ width: "100%" }}
-            />
-            <p
-              style={{
-                fontSize: "0.75rem",
-                color: "#9ca3af",
-                marginTop: "0.25rem",
-              }}
-            >
-              Higher = fewer but more confident notes
-            </p>
-          </div>
-          <div>
-            <label
-              style={{
-                display: "block",
-                marginBottom: "0.5rem",
-                fontWeight: "500",
-                color: "#d1d5db",
-              }}
-            >
-              Note Segmentation: {noteSegmentation.toFixed(2)}
-            </label>
-            <input
-              type="range"
-              min="0.1"
-              max="0.9"
-              step="0.05"
-              value={noteSegmentation}
-              onChange={(e) => setNoteSegmentation(Number(e.target.value))}
-              style={{ width: "100%" }}
-            />
-            <p
-              style={{
-                fontSize: "0.75rem",
-                color: "#9ca3af",
-                marginTop: "0.25rem",
-              }}
-            >
-              Higher = notes split more aggressively
-            </p>
-          </div>
-          <div>
-            <label
-              style={{
-                display: "block",
-                marginBottom: "0.5rem",
-                fontWeight: "500",
-                color: "#d1d5db",
-              }}
-            >
-              Min Note Length: {minNoteLengthMs}ms
-            </label>
-            <input
-              type="range"
-              min="1"
-              max="50"
-              step="1"
-              value={minNoteLengthMs}
-              onChange={(e) => setMinNoteLengthMs(Number(e.target.value))}
-              style={{ width: "100%" }}
-            />
-            <p
-              style={{
-                fontSize: "0.75rem",
-                color: "#9ca3af",
-                marginTop: "0.25rem",
-              }}
-            >
-              Minimum duration for detected notes
-            </p>
-          </div>
-        </div>
-      </div>
 
       <div style={{ marginBottom: "2rem" }}>
         <div style={{ marginBottom: "1rem" }}>
