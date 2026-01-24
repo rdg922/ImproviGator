@@ -1,37 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import RightPanelGrid from "./right-panel/grid";
+import RightPanelRecording from "./right-panel/recording";
 import { useJamSession } from "./jam-session-context";
 
 type RightView = "Grid" | "Recording";
 
 export default function RightPanel() {
-  const { recording, setRecording, midiData, setMidiData, tempo } = useJamSession();
-  
+  const { recording, setRecording, setMidiData, chordTimeline } =
+    useJamSession();
+
   const [view, setView] = useState<RightView>("Grid");
   const [currentChordIndex, setCurrentChordIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
-  // Example chord data
-  const chords = [
-    { chord1: "Cmaj7", chord2: null },
-    { chord1: "Am7", chord2: "Dm7" },
-    { chord1: "Dm7", chord2: null },
-    { chord1: "G7", chord2: null },
-    { chord1: "Fmaj7", chord2: null },
-    { chord1: "Bdim", chord2: "Em7" },
-    { chord1: "Em7", chord2: null },
-    { chord1: "A7", chord2: null },
-    { chord1: "Cmaj7", chord2: null },
-    { chord1: "F#m7b5", chord2: "Bm7" },
-    { chord1: "Bm7", chord2: null },
-    { chord1: "E7", chord2: null },
-    { chord1: "Am7", chord2: null },
-    { chord1: "Dm7", chord2: "G7" },
-    { chord1: "G7", chord2: null },
-    { chord1: "Cmaj7", chord2: null }
-  ];
+  const highlightedChordIndex = useMemo(() => {
+    const sliceCount = chordTimeline?.getSlices().length ?? 0;
+    if (!sliceCount) {
+      return 0;
+    }
+    return currentChordIndex % sliceCount;
+  }, [chordTimeline, currentChordIndex]);
 
   const handleReset = () => {
     setCurrentChordIndex(0);
@@ -69,68 +60,9 @@ export default function RightPanel() {
   return (
     <div className="flex h-full flex-col border-4 border-black bg-amber-200 p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
       {view === "Grid" ? (
-        <>
-          {/* 4x4 Chord Grid */}
-          <div className="mb-4 flex-1 border-4 border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-            <div className="grid h-full grid-cols-4 grid-rows-4">
-              {chords.map((chordData, index) => (
-                <div
-                  key={index}
-                  className={`flex border-b-4 border-r-4 border-black transition-all last:border-r-0 [&:nth-child(4n)]:border-r-0 [&:nth-last-child(-n+4)]:border-b-0 ${
-                    index === currentChordIndex
-                      ? "bg-yellow-300"
-                      : "bg-white"
-                  }`}
-                >
-                  {chordData.chord2 ? (
-                    <>
-                      <div className="flex flex-1 items-center justify-center border-r-4 border-gray-300 text-2xl font-black">
-                        {chordData.chord1}
-                      </div>
-                      <div className="flex flex-1 items-center justify-center text-2xl font-black">
-                        {chordData.chord2}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex flex-1 items-center justify-center text-2xl font-black">
-                      {chordData.chord1}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
+        <RightPanelGrid highlightedIndex={highlightedChordIndex} />
       ) : (
-        <>
-          {/* MIDI Playback Visualization */}
-          <div className="mb-4 flex flex-1 flex-col border-4 border-black bg-white p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
-            <h2 className="mb-4 text-2xl font-black">Your Recording</h2>
-
-            {/* MIDI Visualization Area */}
-            <div className="mb-4 flex-1 border-4 border-black bg-gradient-to-b from-blue-100 to-blue-50 p-4">
-              <div className="flex h-full items-center justify-center">
-                <div className="text-center">
-                  <div className="mb-2 text-6xl">🎹</div>
-                  <p className="font-bold text-gray-600">
-                    MIDI Playback Visualization
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div>
-              <div className="h-3 border-4 border-black bg-gray-200">
-                <div className="h-full w-1/3 bg-blue-500"></div>
-              </div>
-              <div className="mt-1 flex justify-between text-xs font-bold">
-                <span>0:00</span>
-                <span>0:45 / 2:15</span>
-              </div>
-            </div>
-          </div>
-        </>
+        <RightPanelRecording />
       )}
 
       {/* Unified Controls - Always visible */}

@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { handleStrudel } from "~/services/handleStrudel";
 
 interface MidiNote {
   pitch: number;
@@ -16,6 +17,11 @@ interface Recording {
   timestamp: Date;
 }
 
+interface TrackSetting {
+  instrument: string;
+  gain: number;
+}
+
 interface JamSessionContextType {
   // Musical parameters
   key: string;
@@ -26,28 +32,32 @@ interface JamSessionContextType {
   setTempo: (tempo: number) => void;
   timeSignature: string;
   setTimeSignature: (timeSignature: string) => void;
-  
+
   // Recording data
   recording: Recording | null;
   setRecording: (recording: Recording | null) => void;
   midiData: MidiNote[];
   setMidiData: (data: MidiNote[]) => void;
-  
+
   // Saved chords
   savedChords: string[];
   addSavedChord: (chord: string) => void;
   removeSavedChord: (chord: string) => void;
-  
+
   // Generated strudel code
   strudelCode: string;
   setStrudelCode: (code: string) => void;
-  
+  tracks: TrackSetting[];
+  setTrackGain: (instrument: string, gain: number) => void;
+
   // Description/prompt
   description: string;
   setDescription: (description: string) => void;
 }
 
-const JamSessionContext = createContext<JamSessionContextType | undefined>(undefined);
+const JamSessionContext = createContext<JamSessionContextType | undefined>(
+  undefined,
+);
 
 export function JamSessionProvider({ children }: { children: ReactNode }) {
   const [key, setKey] = useState("C");
@@ -56,9 +66,28 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   const [timeSignature, setTimeSignature] = useState("4/4");
   const [recording, setRecording] = useState<Recording | null>(null);
   const [midiData, setMidiData] = useState<MidiNote[]>([]);
-  const [savedChords, setSavedChords] = useState<string[]>(["Cmaj7", "Am7", "Dm7"]);
-  const [strudelCode, setStrudelCode] = useState("");
+  const [savedChords, setSavedChords] = useState<string[]>([
+    "Cmaj7",
+    "Am7",
+    "Dm7",
+  ]);
+  const [strudelCode, setStrudelCodeState] = useState("");
+  const [tracks, setTracks] = useState<TrackSetting[]>([]);
   const [description, setDescription] = useState("");
+
+  useEffect(() => {
+    setTracks(handleStrudel.get_tracks(strudelCode));
+  }, [strudelCode]);
+
+  const setStrudelCode = (code: string) => {
+    setStrudelCodeState(code);
+  };
+
+  const setTrackGain = (instrument: string, gain: number) => {
+    setStrudelCodeState((prev) =>
+      handleStrudel.set_gain(prev, instrument, gain),
+    );
+  };
 
   const addSavedChord = (chord: string) => {
     if (!savedChords.includes(chord)) {
@@ -90,6 +119,8 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
         removeSavedChord,
         strudelCode,
         setStrudelCode,
+        tracks,
+        setTrackGain,
         description,
         setDescription,
       }}

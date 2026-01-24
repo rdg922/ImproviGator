@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { handleStrudel } from "~/services/handleStrudel";
+import { useState } from "react";
 import { useJamSession } from "./jam-session-context";
 
 const SLIDER_MIN = 1;
@@ -9,11 +8,6 @@ const SLIDER_MAX = 5;
 const SLIDER_STEP = 0.1;
 
 type PanelMode = "volume" | "code";
-
-type TrackSetting = {
-  instrument: string;
-  gain: number;
-};
 
 const clampGain = (value: number) =>
   Math.min(
@@ -30,21 +24,11 @@ const formatInstrumentLabel = (instrument: string) => {
 };
 
 export default function TrackSettingsPanel() {
-  const { strudelCode, setStrudelCode } = useJamSession();
+  const { strudelCode, setStrudelCode, tracks, setTrackGain } = useJamSession();
   const [mode, setMode] = useState<PanelMode>("volume");
-
-  const tracks = useMemo<TrackSetting[]>(
-    () => handleStrudel.get_tracks(strudelCode),
-    [strudelCode],
-  );
 
   const toggleMode = () => {
     setMode((current) => (current === "volume" ? "code" : "volume"));
-  };
-
-  const handleGainChange = (instrument: string, gain: number) => {
-    const updatedCode = handleStrudel.set_gain(strudelCode, instrument, gain);
-    setStrudelCode(updatedCode);
   };
 
   return (
@@ -82,10 +66,7 @@ export default function TrackSettingsPanel() {
                     step={SLIDER_STEP}
                     value={normalizedGain}
                     onChange={(event) =>
-                      handleGainChange(
-                        track.instrument,
-                        Number(event.target.value),
-                      )
+                      setTrackGain(track.instrument, Number(event.target.value))
                     }
                     className="w-full accent-purple-500"
                   />

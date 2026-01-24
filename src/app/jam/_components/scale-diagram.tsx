@@ -1,93 +1,91 @@
 "use client";
 
+import { useMemo, useState } from "react";
+import Guitar from "react-guitar";
+import { Note as TonalNote, Scale } from "tonal";
 import { useJamSession } from "./jam-session-context";
+
+const STANDARD_TUNING = [40, 45, 50, 55, 59, 64];
+const FRET_RANGE = { from: 0, amount: 12 } as const;
+const MODALITY_TO_SCALE: Record<string, string> = {
+  Major: "major",
+  Minor: "minor",
+  Dorian: "dorian",
+  Phrygian: "phrygian",
+  Lydian: "lydian",
+  Mixolydian: "mixolydian",
+  Aeolian: "aeolian",
+  Locrian: "locrian",
+};
+
+const pitchClass = (midi: number) => ((midi % 12) + 12) % 12;
 
 export default function ScaleDiagram() {
   const { key, modality } = useJamSession();
+  const [selectedFrets, setSelectedFrets] = useState<number[]>(() =>
+    STANDARD_TUNING.map(() => 0),
+  );
+
+  const rootPitchClass = useMemo(() => {
+    const chroma = TonalNote.chroma(key);
+    return typeof chroma === "number" ? chroma : 0;
+  }, [key]);
+
+  const scalePitchClasses = useMemo(() => {
+    const tonalModality = MODALITY_TO_SCALE[modality] ?? modality.toLowerCase();
+    const scaleQuery = `${key} ${tonalModality}`.trim();
+    const tonalScale = Scale.get(scaleQuery);
+    if (!tonalScale.notes.length) {
+      return new Set([rootPitchClass]);
+    }
+    return new Set(
+      tonalScale.notes
+        .map((noteName) => TonalNote.chroma(noteName))
+        .filter((value): value is number => typeof value === "number"),
+    );
+  }, [key, modality, rootPitchClass]);
+
+  const renderFinger = useMemo(
+    () => (stringIndex: number, fret: number) => {
+      const midiNote = STANDARD_TUNING[stringIndex] + fret;
+      const chroma = pitchClass(midiNote);
+      if (!scalePitchClasses.has(chroma)) {
+        return null;
+      }
+
+      const noteName = TonalNote.pitchClass(TonalNote.fromMidi(midiNote) ?? "");
+      const label = noteName ?? "";
+      const isRoot = chroma === rootPitchClass;
+
+      return (
+        <span
+          className={`scale-guide-note ${
+            isRoot ? "scale-guide-note--root" : "scale-guide-note--degree"
+          }`}
+          aria-label={
+            label ? `${label} ${isRoot ? "root" : "scale tone"}` : undefined
+          }
+        >
+          {label}
+        </span>
+      );
+    },
+    [rootPitchClass, scalePitchClasses],
+  );
 
   return (
     <div className="flex h-full flex-col border-4 border-black bg-white p-6 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
-      <h2 className="mb-4 text-xl font-black">Scale Guide - {key} {modality}</h2>
+      <h2 className="text-xl font-black">
+        Scale Guide - {key} {modality}
+      </h2>
 
-      {/* Fretboard */}
-      <div className="flex-1 border-4 border-black bg-amber-50 p-6">
-        <div className="space-y-3">
-          {/* Fretboard strings */}
-          {["E", "B", "G", "D", "A", "E"].map((string, stringIndex) => (
-            <div key={stringIndex} className="flex items-center gap-2">
-              <span className="w-6 text-sm font-black">{string}</span>
-              <div className="relative flex flex-1 items-center">
-                <div className="h-1 w-full bg-black"></div>
-                {/* Fret markers - example positions */}
-                {stringIndex === 0 && (
-                  <>
-                    <div className="absolute left-[8%] h-5 w-5 rounded-full border-4 border-black bg-yellow-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                    <div className="absolute left-[25%] h-5 w-5 rounded-full border-4 border-black bg-yellow-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                    <div className="absolute left-[40%] h-5 w-5 rounded-full border-4 border-black bg-blue-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                    <div className="absolute left-[55%] h-5 w-5 rounded-full border-4 border-black bg-yellow-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                  </>
-                )}
-                {stringIndex === 1 && (
-                  <>
-                    <div className="absolute left-[12%] h-5 w-5 rounded-full border-4 border-black bg-blue-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                    <div className="absolute left-[28%] h-5 w-5 rounded-full border-4 border-black bg-yellow-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                    <div className="absolute left-[45%] h-5 w-5 rounded-full border-4 border-black bg-yellow-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                  </>
-                )}
-                {stringIndex === 2 && (
-                  <>
-                    <div className="absolute left-[15%] h-5 w-5 rounded-full border-4 border-black bg-yellow-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                    <div className="absolute left-[32%] h-5 w-5 rounded-full border-4 border-black bg-yellow-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                    <div className="absolute left-[48%] h-5 w-5 rounded-full border-4 border-black bg-blue-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                  </>
-                )}
-                {stringIndex === 3 && (
-                  <>
-                    <div className="absolute left-[10%] h-5 w-5 rounded-full border-4 border-black bg-yellow-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                    <div className="absolute left-[27%] h-5 w-5 rounded-full border-4 border-black bg-yellow-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                    <div className="absolute left-[43%] h-5 w-5 rounded-full border-4 border-black bg-blue-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                  </>
-                )}
-                {stringIndex === 4 && (
-                  <>
-                    <div className="absolute left-[13%] h-5 w-5 rounded-full border-4 border-black bg-blue-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                    <div className="absolute left-[30%] h-5 w-5 rounded-full border-4 border-black bg-yellow-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                    <div className="absolute left-[47%] h-5 w-5 rounded-full border-4 border-black bg-yellow-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                  </>
-                )}
-                {stringIndex === 5 && (
-                  <>
-                    <div className="absolute left-[8%] h-5 w-5 rounded-full border-4 border-black bg-yellow-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                    <div className="absolute left-[25%] h-5 w-5 rounded-full border-4 border-black bg-yellow-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                    <div className="absolute left-[40%] h-5 w-5 rounded-full border-4 border-black bg-blue-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Fret numbers */}
-        <div className="mt-3 flex justify-around border-t-4 border-black pt-2">
-          {[0, 3, 5, 7, 9, 12].map((fret) => (
-            <span key={fret} className="text-xs font-bold">
-              {fret}
-            </span>
-          ))}
-        </div>
-
-        {/* Legend */}
-        <div className="mt-4 flex justify-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full border-2 border-black bg-blue-300"></div>
-            <span className="text-xs font-bold">Root Note</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full border-2 border-black bg-yellow-300"></div>
-            <span className="text-xs font-bold">Scale Notes</span>
-          </div>
-        </div>
-      </div>
+      <Guitar
+        className="scale-guide-board flex-1 text-[0.5rem]"
+        strings={selectedFrets}
+        onChange={setSelectedFrets}
+        frets={FRET_RANGE}
+        renderFinger={renderFinger}
+      />
     </div>
   );
 }
