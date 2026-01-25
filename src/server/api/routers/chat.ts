@@ -32,9 +32,10 @@ IMPORTANT: Always use the appropriate tool when relevant:
 - When the user asks to make changes to the backing track → call edit_backing_track. If you need to understand Strudel syntax to make changes, first call query_strudel_docs to get the documentation.
 - When the user asks to see a scale or show notes on the fretboard → call show_scale
 - When suggesting chords, discussing chord progressions, or answering "what chord should I use" → call show_chord with the chord names (using flat notation)
-- When the user asks about music theory (scales/modes/arpeggios) → call music_theory_query, then follow up with show_scale and/or show_chord as appropriate
+- When the user asks about music theory (scales/modes/arpeggios) → call music_theory_query, then follow up with show_scale and/or show_chord as needed.
 - When recommending chords for practice or soloing → call show_chord to display them (using flat notation)
 - When you need to understand or modify Strudel code syntax → call query_strudel_docs to access the documentation
+- You can use show_chord and include a description if appropriate
 
 Tool usage policy:
 - Always call query_strudel_docs before ANY edit_backing_track request (even for simple BPM changes).

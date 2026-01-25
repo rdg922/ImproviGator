@@ -83,6 +83,20 @@ export default function RightPanelRecording({
     [midiData, recording],
   );
 
+  const noteRange = useMemo(() => {
+    if (notes.length === 0) {
+      return { min: 60, max: 72 }; // Default to one octave around middle C
+    }
+    const pitches = notes.map((note) => note.pitch);
+    const min = Math.min(...pitches);
+    const max = Math.max(...pitches);
+    const padding = 2; // Add 2 notes of padding on each side
+    return {
+      min: Math.max(0, min - padding),
+      max: Math.min(127, max + padding),
+    };
+  }, [notes]);
+
   const chordSlices = useMemo(
     () => (parsedChords.length > 0 ? parsedChords : FALLBACK_CHORDS),
     [parsedChords],
@@ -229,71 +243,128 @@ export default function RightPanelRecording({
 
   return (
     <div className="mb-6 flex flex-1 flex-col overflow-hidden rounded-xl border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
-      <div className="relative flex-1 overflow-hidden bg-white">
-        {/* <div className="pointer-events-none absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 bg-red-500" /> */}
-        <div
-          ref={scrollRef}
-          onScroll={handleScroll}
-          className="h-full overflow-x-auto overflow-y-hidden"
-        >
-          <div
-            className="relative h-full"
-            style={{ width: `${timelineWidth}px` }}
-          >
-            <div
-              className="pointer-events-none absolute inset-y-0 z-20 w-1 -translate-x-1/2 rounded-full bg-red-500"
-              style={{ left: `${playheadX}px` }}
-            />
-            <div className="absolute top-0 z-10 h-6 w-full border-b-2 border-black bg-gray-100">
-              {Array.from({
-                length: Math.ceil(totalDurationMs / 1000) + 1,
-              }).map((_, index) => (
+      <div className="relative flex flex-1 overflow-hidden bg-white">
+        {/* Note labels on the left */}
+        <div className="z-30 w-12 flex-shrink-0 border-r-2 border-black bg-gray-50">
+          <div className="h-6 border-b-2 border-black bg-gray-100" />
+          <div className="relative h-[calc(100%-24px)]">
+            {Array.from({
+              length: noteRange.max - noteRange.min + 1,
+            }).map((_, index) => {
+              const pitch = noteRange.max - index;
+              const NOTE_NAMES = [
+                "C",
+                "C#",
+                "D",
+                "D#",
+                "E",
+                "F",
+                "F#",
+                "G",
+                "G#",
+                "A",
+                "A#",
+                "B",
+              ];
+              const noteName = NOTE_NAMES[pitch % 12];
+              const octave = Math.floor(pitch / 12) - 1;
+              const isC = pitch % 12 === 0;
+              const noteHeight = 12;
+              return (
                 <div
-                  key={index}
-                  className="absolute top-0 h-full border-r border-gray-300 text-[10px] font-bold text-gray-600"
-                  style={{ left: `${index * 1000 * pixelsPerMs}px` }}
-                >
-                  <span className="ml-1">{index}s</span>
-                </div>
-              ))}
-            </div>
-            <div className="pointer-events-none absolute inset-x-0 top-8 bottom-0">
-              {chordSegments.map((segment) => (
-                <div
-                  key={`chord-segment-${segment.index}`}
-                  className="absolute inset-y-0 border-r-2 border-dotted"
+                  key={pitch}
+                  className="absolute w-full border-b border-gray-200 text-[9px] font-semibold"
                   style={{
-                    left: `${segment.startMs * pixelsPerMs}px`,
-                    width: `${Math.max(
-                      2,
-                      (segment.endMs - segment.startMs) * pixelsPerMs,
-                    )}px`,
-                    backgroundColor: segment.colors.background,
-                    borderColor: segment.colors.divider,
+                    top: `${index * noteHeight}px`,
+                    height: `${noteHeight}px`,
+                    backgroundColor: isC
+                      ? "rgba(59, 130, 246, 0.1)"
+                      : "transparent",
                   }}
                 >
                   <span
-                    className="absolute top-2 left-2 text-xs font-bold"
-                    style={{ color: segment.colors.label }}
+                    className={`ml-1 ${isC ? "text-blue-600" : "text-gray-600"}`}
                   >
-                    {segment.label}
+                    {noteName}
+                    {isC && <span className="text-[7px]">{octave}</span>}
                   </span>
                 </div>
-              ))}
-            </div>
-            <div className="absolute inset-x-0 top-8 bottom-0">
-              {notes.map((note, index) => (
-                <div
-                  key={`${note.pitch}-${index}`}
-                  className="absolute rounded-md border-2 border-black bg-yellow-200"
-                  style={{
-                    left: `${note.startTime * pixelsPerMs}px`,
-                    width: `${Math.max(6, note.duration * pixelsPerMs)}px`,
-                    top: `${(127 - note.pitch) * 1.1}px`,
-                    height: "10px",
-                  }}
-                />
-              ))}
+              );
+            })}
+          </div>
+        </div>
+        {/* Main scrollable area */}
+        <div className="relative flex-1 overflow-hidden">
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="h-full overflow-x-auto overflow-y-hidden"
+          >
+            <div
+              className="relative h-full"
+              style={{ width: `${timelineWidth}px` }}
+            >
+              <div
+                className="pointer-events-none absolute inset-y-0 z-20 w-1 -translate-x-1/2 rounded-full bg-red-500"
+                style={{ left: `${playheadX}px` }}
+              />
+              <div className="absolute top-0 z-10 h-6 w-full border-b-2 border-black bg-gray-100">
+                {Array.from({
+                  length: Math.ceil(totalDurationMs / 1000) + 1,
+                }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="absolute top-0 h-full border-r border-gray-300 text-[10px] font-bold text-gray-600"
+                    style={{ left: `${index * 1000 * pixelsPerMs}px` }}
+                  >
+                    <span className="ml-1">{index}s</span>
+                  </div>
+                ))}
+              </div>
+              <div className="pointer-events-none absolute inset-x-0 top-8 bottom-0">
+                {chordSegments.map((segment) => (
+                  <div
+                    key={`chord-segment-${segment.index}`}
+                    className="absolute inset-y-0 border-r-2 border-dotted"
+                    style={{
+                      left: `${segment.startMs * pixelsPerMs}px`,
+                      width: `${Math.max(
+                        2,
+                        (segment.endMs - segment.startMs) * pixelsPerMs,
+                      )}px`,
+                      backgroundColor: segment.colors.background,
+                      borderColor: segment.colors.divider,
+                    }}
+                  >
+                    <span
+                      className="absolute top-2 left-2 text-xs font-bold"
+                      style={{ color: segment.colors.label }}
+                    >
+                      {segment.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="absolute inset-x-0 top-8 bottom-0">
+                {notes.map((note, index) => {
+                  const noteHeight = 12;
+                  const rangeSpan = noteRange.max - noteRange.min + 1;
+                  const notePosition =
+                    (noteRange.max - note.pitch) * noteHeight;
+                  return (
+                    <div
+                      key={`${note.pitch}-${index}`}
+                      className="absolute rounded-md border-2 border-black bg-yellow-200"
+                      style={{
+                        left: `${note.startTime * pixelsPerMs}px`,
+                        width: `${Math.max(6, note.duration * pixelsPerMs)}px`,
+                        top: `${notePosition}px`,
+                        height: `${noteHeight - 2}px`,
+                      }}
+                    />
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
