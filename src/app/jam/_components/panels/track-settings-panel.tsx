@@ -4,8 +4,8 @@ import { useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useJamSession } from "../context/jam-session-context";
 
-const SLIDER_MIN = 0.1;
-const SLIDER_MAX = 1;
+const SLIDER_MIN = 0;
+const SLIDER_MAX = 2;
 const SLIDER_STEP = 0.1;
 
 type PanelMode = "volume" | "code";
@@ -133,8 +133,8 @@ export default function TrackSettingsPanel() {
 
       {mode === "volume" ? (
         <div ref={volumeRef} className="flex-1 space-y-4 overflow-y-auto">
-          {tracks.length > 1 ? (
-            tracks.slice(1).map((track) => {
+          {tracks.length > 0 ? (
+            tracks.map((track) => {
               const normalizedGain = clampGain(track.gain);
               return (
                 <div

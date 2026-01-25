@@ -47,12 +47,15 @@ C-M7 Cm^9 C-M9 Cm9 Cmad
 -sawtooth is not a valid function()! if you want to change the way a sound works use the .s() method instead
 -**.piano() is not a method, instead use .sound("piano")**
 -Always end each instrument chain with .gain(value). If you did not set a gain, default to .gain(1). Place .gain(...) at the end of the chain always.
+-When using a bass, they are quieter, so use .gain(2) for that instrument
 -if asked for a solo, make the rhythm and number of notes in a beat vary. If adding effects to the solo, add an lpf of 1500 and room effect of 0.6, and add a gain of 2.
 -Songs should never have more than 16 bars. This means that there should not be more than 16 measures in the song. One bar means one measure when generating music.
 -Do not use the .layer() function.
 -When setting a name comment above the instrument, just include the name, so write "Bass" instead of "walking bass"
 -Only add comments for instrument names. do not add comments for anything else. Do not add a comment above the chords
+-DO NOT COMMENT A DESCRIPTION OF THE SONG. ONLY THE INSTRUMENT NAME ABOVE THE INSTRUMENT PART
 -Do not use exclamation mark notation for repeating chords.
+-Do not use more than two chords per measure/bar
 -IMPORTANT: **While using RolandTR808, do not use text such as "bassdrum," instead use the abbreviations:
 s("bd sd [~ bd] sd,hh*16, misc")
 

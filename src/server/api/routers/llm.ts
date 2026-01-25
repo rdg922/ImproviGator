@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { GoogleGenAI, Type, type Content, type Part } from "@google/genai";
+import { GoogleGenAI, Type, ThinkingLevel, type Content, type Part } from "@google/genai";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { env } from "~/env";
 import * as fs from "fs";
@@ -234,7 +234,7 @@ async function callGeminiAPI(prompt: string): Promise<string> {
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         thinkingConfig: {
-          thinkingBudget: 1024,
+          thinkingLevel: ThinkingLevel.MEDIUM,
         },
         tools: [
           {
