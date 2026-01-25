@@ -11,8 +11,8 @@ export default function JamPage() {
     <JamSessionProvider>
       <div className="grid h-screen grid-cols-[2fr_5fr] grid-rows-[3fr_240px] gap-3 bg-amber-100 p-3">
         {/* Top Left - Mode-dependent panel with title */}
-        <div className="flex flex-col gap-2 overflow-hidden mt-2">
-          <h1 className="text-center text-4xl font-black">Improv Tool</h1>
+        <div className="mt-2 flex flex-col gap-2 overflow-hidden">
+          <h1 className="text-center text-4xl font-black">Improv-igator</h1>
           <div className="flex-1 overflow-hidden">
             <LeftPanel />
           </div>
