@@ -8,7 +8,6 @@ import {
   validateStrudel,
   type StrudelValidationResult,
 } from "~/services/strudelValidation";
-import { handleStrudel } from "~/services/handleStrudel";
 
 // Load the system prompt and docs
 const STRUDEL_PROMPT = fs.readFileSync(
@@ -225,8 +224,6 @@ async function callGeminiAPI(prompt: string): Promise<string> {
   });
 
   const conversation: ConversationEntry[] = [createUserPrompt(prompt)];
-  const postProcessCode = (code: string) => handleStrudel.append_gain(code);
-
   for (let attempt = 1; attempt <= MAX_GEMINI_ATTEMPTS; attempt++) {
     const lastMessage = conversation[conversation.length - 1];
     logGeminiAttempt(attempt, "-> request", lastMessage);
@@ -236,9 +233,9 @@ async function callGeminiAPI(prompt: string): Promise<string> {
       contents: conversation,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
-        // thinkingConfig: {
-        //   thinkingBudget: 0,
-        // },
+        thinkingConfig: {
+          thinkingBudget: 0,
+        },
         tools: [
           {
             functionDeclarations: [VALIDATE_STRUDEL_FUNCTION_DECLARATION],
@@ -262,7 +259,7 @@ async function callGeminiAPI(prompt: string): Promise<string> {
     );
 
     if (handledFunctionCalls.validatedCode) {
-      return postProcessCode(handledFunctionCalls.validatedCode);
+      return handledFunctionCalls.validatedCode;
     }
 
     if (handledFunctionCalls.handled) {
@@ -282,7 +279,7 @@ async function callGeminiAPI(prompt: string): Promise<string> {
     );
 
     if (finalValidation.isValid) {
-      return postProcessCode(strippedText);
+      return strippedText;
     }
 
     const errorMessage = finalValidation.error?.message ?? "Validation failed";

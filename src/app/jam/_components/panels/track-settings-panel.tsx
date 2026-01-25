@@ -67,8 +67,8 @@ export default function TrackSettingsPanel() {
 
       {mode === "volume" ? (
         <div className="flex-1 space-y-4 overflow-y-auto">
-          {tracks.length ? (
-            tracks.map((track) => {
+          {tracks.length > 1 ? (
+            tracks.slice(1).map((track) => {
               const normalizedGain = clampGain(track.gain);
               return (
                 <div
