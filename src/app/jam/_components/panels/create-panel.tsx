@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import gsap from "gsap";
 import { useJamSession } from "../context/jam-session-context";
 import { api } from "~/trpc/react";
 
@@ -67,9 +68,9 @@ $: chords.rootNotes().s("gm_acoustic_bass").struct("x ~ ~ x x ~ ~ ~").octave(2).
 
 // Drums
 $: s("bd ~ bd ~").bank("RolandTR808").gain(0.7)
-$: s("hh*8").bank("RolandTR808").velocity("<0.5 0.2>").swingBy(1/3, 4).gain(1)`
+$: s("hh*8").bank("RolandTR808").velocity("<0.5 0.2>").swingBy(1/3, 4).gain(1)`,
   },
-{
+  {
     name: "Guitar Jazz",
     key: "Eb",
     modality: "Major",
@@ -88,9 +89,9 @@ $: chords.voicing().s("gm_acoustic_guitar_nylon").struct("x ~ ~ x ~ x ~ ~").gain
 s("gm_acoustic_bass").note(chords.rootNotes()).struct("x ~ ~ ~ x ~ ~ ~").octave(2).gain(1.1)
 
 // Drums
-$: s("bd ~ [~ sd] ~, hh*4").bank("RolandTR808").gain(0.7)`
+$: s("bd ~ [~ sd] ~, hh*4").bank("RolandTR808").gain(0.7)`,
   },
-{
+  {
     name: "Synth Jazz",
     key: "C",
     modality: "Major",
@@ -109,9 +110,9 @@ $: chords.voicing().s("saw").struct("x ~ x ~ ~ x ~ x").gain(0.15).room(0.5).lpf(
 $: chords.rootNotes().s("gm_acoustic_bass").struct("x [~ x] x ~").octave(2).gain(0.9)
 
 // Drums
-$: s("bd sd, hh*16, [~ rim]*2").bank("RolandTR808").gain(0.8)`
+$: s("bd sd, hh*16, [~ rim]*2").bank("RolandTR808").gain(0.8)`,
   },
-{
+  {
     name: "Kalimba Waltz",
     key: "C",
     modality: "Major",
@@ -127,8 +128,9 @@ let chords = chord("<C^7 Am7 Dm7 G7 C^7 Am7 Dm7 G7 F^7 G7 C^7 Am7 Dm7 G7 C^7 G7a
 $: chords.voicing().s("gm_kalimba").struct("x x x").room(.6).velocity("0.8 0.6 0.6").gain(1)
 
 // Drums
-$: s("[bd ~ ~], [~ rim rim], hh*3").bank("RolandTR808").velocity("0.7 0.5 0.5").gain(1)`
-  },];
+$: s("[bd ~ ~], [~ rim rim], hh*3").bank("RolandTR808").velocity("0.7 0.5 0.5").gain(1)`,
+  },
+];
 
 type CreatePanelProps = {
   onGenerationComplete?: () => void;
@@ -137,6 +139,7 @@ type CreatePanelProps = {
 export default function CreatePanel({
   onGenerationComplete,
 }: CreatePanelProps = {}) {
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const {
     key,
     setKey,
@@ -168,6 +171,27 @@ export default function CreatePanel({
     message: string;
   } | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string>("");
+
+  useLayoutEffect(() => {
+    if (!panelRef.current) {
+      return;
+    }
+
+    const context = gsap.context(() => {
+      gsap.set("[data-anim='card']", { opacity: 0, y: 10 });
+      gsap
+        .timeline({ defaults: { ease: "power3.out" } })
+        .from(panelRef.current, { opacity: 0, y: 12, duration: 0.35 })
+        .to("[data-anim='card']", {
+          opacity: 1,
+          y: 0,
+          duration: 0.3,
+          stagger: 0.05,
+        });
+    }, panelRef);
+
+    return () => context.revert();
+  }, []);
 
   const generateBackingTrack = api.llm.generateBackingTrack.useMutation({
     onSuccess: (data) => {
@@ -212,10 +236,10 @@ export default function CreatePanel({
       sanitizedInstruments.length > 0
         ? sanitizedInstruments
         : DEFAULT_INSTRUMENTS;
-    
+
     // Persist instruments to context
     setInstruments(finalInstruments);
-    
+
     const safeBars = Number.isFinite(localBars) ? localBars : DEFAULT_BAR_COUNT;
     const finalBars = Math.min(64, Math.max(1, safeBars));
 
@@ -263,9 +287,9 @@ export default function CreatePanel({
   };
 
   return (
-    <div className="flex h-full flex-col p-2">
+    <div ref={panelRef} className="flex h-full flex-col p-2">
       <div className="flex-1 space-y-1 overflow-y-auto">
-        <div className="flex flex-row justify-stretch gap-x-5">
+        <div data-anim="card" className="flex flex-row justify-stretch gap-x-5">
           <div className="grow">
             <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
               Key
@@ -297,7 +321,7 @@ export default function CreatePanel({
           </div>
         </div>
 
-        <div className="flex flex-row justify-stretch gap-x-5">
+        <div data-anim="card" className="flex flex-row justify-stretch gap-x-5">
           <div className="grow">
             <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
               Tempo (BPM)
@@ -327,7 +351,7 @@ export default function CreatePanel({
           </div>
         </div>
 
-        <div>
+        <div data-anim="card">
           <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
             Time Signature
           </label>
@@ -348,7 +372,7 @@ export default function CreatePanel({
           </div>
         </div>
 
-        <div>
+        <div data-anim="card">
           <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
             Instruments (comma separated)
           </label>
@@ -361,7 +385,7 @@ export default function CreatePanel({
           />
         </div>
 
-        <div>
+        <div data-anim="card">
           <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
             Description (genre, mood, etc.)
           </label>
@@ -375,6 +399,7 @@ export default function CreatePanel({
         </div>
 
         <button
+          data-anim="card"
           onClick={handleGenerate}
           disabled={generateBackingTrack.isPending}
           className="w-full border-4 border-black bg-orange-400 px-4 py-2 text-lg font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:bg-orange-300 disabled:shadow-none"
@@ -382,7 +407,7 @@ export default function CreatePanel({
           {generateBackingTrack.isPending ? "Generating..." : "Generate"}
         </button>
 
-        <div className="border-t-4 border-black pt-2">
+        <div data-anim="card" className="border-t-4 border-black pt-2">
           <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
             Or Load a Preset
           </label>
@@ -411,6 +436,7 @@ export default function CreatePanel({
 
         {feedback && (
           <div
+            data-anim="card"
             className={`border-4 border-black px-3 py-1 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
               feedback.type === "success"
                 ? "bg-green-200 text-black"

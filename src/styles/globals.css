@@ -49,6 +49,10 @@
   pointer-events: none;
 }
 
+.scale-guide-board {
+  overflow-y: hidden !important;
+}
+
 .scale-guide-board .finger:empty {
   display: none;
 }

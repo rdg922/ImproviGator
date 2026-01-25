@@ -1,14 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import gsap from "gsap";
 import { useJamSession } from "./jam-session-context";
 import type { ChatMessage, ConversationEntry } from "./jam-session-context";
 import { api } from "~/trpc/react";
 import Chord from "~/app/_components/react-chords/react-chords/src/Chord";
-import {
-  GUITAR_INSTRUMENT,
-  getChordData,
-} from "~/lib/chord-utils";
+import { GUITAR_INSTRUMENT, getChordData } from "~/lib/chord-utils";
 
 export default function ChatPanel() {
   const {
@@ -27,8 +25,46 @@ export default function ChatPanel() {
   } = useJamSession();
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const chatMutation = api.chat.sendMessage.useMutation();
+
+  useLayoutEffect(() => {
+    if (!panelRef.current) {
+      return;
+    }
+
+    const context = gsap.context(() => {
+      gsap.fromTo(
+        panelRef.current,
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" },
+      );
+    }, panelRef);
+
+    return () => context.revert();
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!scrollContainerRef.current) {
+      return;
+    }
+
+    const context = gsap.context(() => {
+      const items = gsap.utils.toArray<HTMLElement>("[data-anim='message']");
+      const latest = items.at(-1);
+      if (latest) {
+        gsap.fromTo(
+          latest,
+          { opacity: 0, y: 8, scale: 0.98 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.25, ease: "power2.out" },
+        );
+      }
+    }, scrollContainerRef);
+
+    return () => context.revert();
+  }, [chatMessages.length, isLoading]);
 
   const normalizeHistory = (history: unknown): ConversationEntry[] => {
     if (!Array.isArray(history)) {
@@ -189,10 +225,13 @@ export default function ChatPanel() {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+    <div ref={panelRef} className="flex h-full flex-col">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 space-y-3 overflow-y-auto p-4"
+      >
         {chatMessages.map((message, index) => (
-          <div key={`${message.role}-${index}`}>
+          <div key={`${message.role}-${index}`} data-anim="message">
             <div
               className={`flex ${
                 message.role === "user" ? "justify-end" : "justify-start"
@@ -207,7 +246,7 @@ export default function ChatPanel() {
               </div>
             </div>
             {message.suggestedChords && message.suggestedChords.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2 justify-start">
+              <div className="mt-4 flex flex-wrap justify-start gap-2">
                 {message.suggestedChords.map((suggestion, idx) => {
                   const chordData = getChordData(
                     suggestion.chord,
@@ -216,7 +255,7 @@ export default function ChatPanel() {
                   return (
                     <div
                       key={`${suggestion.chord}-${idx}`}
-                      className="flex flex-col items-center border-4 border-black bg-yellow-200 p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-48"
+                      className="flex w-48 flex-col items-center border-4 border-black bg-yellow-200 p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                     >
                       <div className="mb-1 text-xs font-black">
                         {suggestion.chord}
@@ -248,7 +287,7 @@ export default function ChatPanel() {
           </div>
         ))}
         {isLoading && (
-          <div className="flex justify-start">
+          <div className="flex justify-start" data-anim="message">
             <div className="border-4 border-black bg-green-300 p-3 text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               Thinking...
             </div>
