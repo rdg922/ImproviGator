@@ -237,13 +237,18 @@ export default function RightPanel() {
   useEffect(() => {
     if (!isPlaying) return;
 
+    // Calculate time per chord based on tempo and time signature
+    const beatsPerBar = getBeatsPerBar();
+    const beatDurationMs = getBeatDurationMs();
+    const chordDurationMs = beatsPerBar * beatDurationMs;
+
     const interval = setInterval(() => {
       const chordCount = parsedChords.length || 4;
       setCurrentChordIndex((prev) => (prev + 1) % chordCount);
-    }, 2000); // Update every 2 seconds - adjust based on tempo
+    }, chordDurationMs);
 
     return () => clearInterval(interval);
-  }, [isPlaying, parsedChords.length]);
+  }, [isPlaying, parsedChords.length, tempo, timeSignature]);
 
   const handleReset = () => {
     if (view === "Recording") {
