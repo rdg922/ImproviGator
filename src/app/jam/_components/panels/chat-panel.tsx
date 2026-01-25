@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import gsap from "gsap";
 import { useJamSession } from "../context/jam-session-context";
 import type {
   ChatMessage,
@@ -34,6 +35,7 @@ export default function ChatPanel() {
   const lastAutoAnalysisRef = useRef<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const analysisStreamRef = useRef<number | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   const chatMutation = api.chat.sendMessage.useMutation();
 
@@ -44,6 +46,42 @@ export default function ChatPanel() {
         scrollContainerRef.current.scrollHeight;
     }
   }, [chatMessages, isLoading]);
+
+  useLayoutEffect(() => {
+    if (!panelRef.current) {
+      return;
+    }
+
+    const context = gsap.context(() => {
+      gsap.fromTo(
+        panelRef.current,
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" },
+      );
+    }, panelRef);
+
+    return () => context.revert();
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!scrollContainerRef.current) {
+      return;
+    }
+
+    const context = gsap.context(() => {
+      const items = gsap.utils.toArray<HTMLElement>("[data-anim='message']");
+      const latest = items.at(-1);
+      if (latest) {
+        gsap.fromTo(
+          latest,
+          { opacity: 0, y: 8, scale: 0.98 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.25, ease: "power2.out" },
+        );
+      }
+    }, scrollContainerRef);
+
+    return () => context.revert();
+  }, [chatMessages.length, isLoading]);
 
   const normalizeHistory = (history: unknown): ConversationEntry[] => {
     if (!Array.isArray(history)) {
@@ -436,13 +474,13 @@ export default function ChatPanel() {
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div ref={panelRef} className="flex h-full flex-col">
       <div
         ref={scrollContainerRef}
         className="flex-1 space-y-3 overflow-y-auto p-4"
       >
         {chatMessages.map((message, index) => (
-          <div key={`${message.role}-${index}`}>
+          <div key={`${message.role}-${index}`} data-anim="message">
             <div
               className={`flex ${
                 message.role === "user" ? "justify-end" : "justify-start"
@@ -514,7 +552,7 @@ export default function ChatPanel() {
           </div>
         ))}
         {isLoading && (
-          <div className="flex justify-start">
+          <div className="flex justify-start" data-anim="message">
             <div className="border-4 border-black bg-green-300 p-3 text-sm font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               Thinking...
             </div>

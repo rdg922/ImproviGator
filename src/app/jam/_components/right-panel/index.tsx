@@ -494,7 +494,8 @@ export default function RightPanel() {
       stopPlayback();
       return;
     }
-    startCountdown("play");
+    clearCountdown();
+    void startPlayback();
   };
 
   const handleRecord = () => {
