@@ -415,6 +415,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
         setConversationHistory,
         analysisResult,
         analysisStatus,
+        setAnalysisStatus,
         analysisError,
         runAnalysis,
         clearAnalysis,

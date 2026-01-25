@@ -95,6 +95,7 @@ export default function RightPanel() {
     timeSignature,
     runAnalysis,
     analysisStatus,
+    setAnalysisStatus,
     clearAnalysis,
   } = useJamSession();
 
@@ -502,6 +503,7 @@ export default function RightPanel() {
   const handleRecord = () => {
     if (isRecording) {
       clearRecordingTimeout();
+      setAnalysisStatus("loading");
       void finalizeRecording();
       return;
     }
