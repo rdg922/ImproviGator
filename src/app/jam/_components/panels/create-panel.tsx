@@ -407,7 +407,7 @@ export default function CreatePanel({
           {generateBackingTrack.isPending ? "Generating..." : "Generate"}
         </button>
 
-        <div data-anim="card" className="border-t-4 border-black pt-2">
+        <div data-anim="card" className="pt-2">
           <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
             Or Load a Preset
           </label>
