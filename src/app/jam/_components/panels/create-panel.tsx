@@ -338,12 +338,12 @@ export default function CreatePanel({
 
           <div className="grow">
             <label className="mb-1 block text-sm font-bold tracking-wide uppercase">
-              Bars (1-64)
+              Bars (4-16)
             </label>
             <input
               type="number"
-              min={1}
-              max={64}
+              min={4}
+              max={16}
               value={localBars}
               onChange={(e) => setLocalBars(Number(e.target.value))}
               className="w-full border-4 border-black bg-purple-200 px-3 py-1 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"

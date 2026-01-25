@@ -118,7 +118,6 @@ const JamSessionContext = createContext<JamSessionContextType | undefined>(
 
 const DEFAULT_STRUDEL_CODE = `setcps(120/60/4)
 
-// 16 Bar Chill Jazz Progression in C Major
 let chords = chord("<C^9 A-7 D-9 G13 C^9 A7b13 D-9 G7alt C^9 C7 F^7 F-7 C^9 A-7 D-9 G13>")
 
 // Synth
