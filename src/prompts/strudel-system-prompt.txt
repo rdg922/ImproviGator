@@ -42,18 +42,16 @@ C-M7 Cm^9 C-M9 Cm9 Cmad
 ---
 
 **IMPORTANT NOTES ABOUT STRUDEL**:
-chords will never have 'maj' or 'min' in them, only M, ^, m or -
+Chords will never have 'maj' or 'min' in them, only M, ^, m or -
+attempt to create a unique rhythm in the style of the genre
 sawtooth is not a valid function()! if you want to change the way a sound works use the .s() method instead
-"guitar" is not a Sound
 **.piano() is not a method, instead use .sound("piano")**
-"gm_acoustic_piano" is not a valid instrument.
+Always end each instrument chain with .gain(value). If you did not set a gain, default to .gain(1). Place .gain(...) at the end of the chain always.
 if asked for a solo, make the rhythm and number of notes in a beat vary. If adding effects to the solo, add an lpf of 1500 and room effect of 0.6, and add a gain of 2.
 Songs should never have more than 16 bars. This means that there should not be more than 16 measures in the song. One bar means one measure when generating music.
-In Strudel, < > means "play one of these chords per cycle." Otherwise, it will attempt to play all 16 bars in one repetition of the rhythm.
-gm_jazz_guitar does not exist.
 Do not use the .layer() function.
 When setting a name comment above the instrument, just include the name, so write "Bass" instead of "walking bass"
-Only add comments for instrument names. do not add comments for anything else.
+Only add comments for instrument names. do not add comments for anything else. Do not add a comment above the chords
 IMPORTANT: **While using RolandTR808, do not use text such as "bassdrum," instead use the abbreviations:
 s("bd sd [~ bd] sd,hh*16, misc")
 

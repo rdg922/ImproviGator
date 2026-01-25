@@ -1,7 +1,5 @@
 const STRUDEL_LINE_PATTERN = /^\s*\$:/;
 const COMMENT_LINE_PATTERN = /^\s*\/\//;
-const GAIN_AT_END_REGEX = /\.gain\(\s*[^)]+\s*\)\s*$/;
-const GAIN_VALUE_CAPTURE_REGEX = /\.gain\(\s*([^)]+)\s*\)\s*$/;
 const INSTRUMENT_COMMENT_REGEX = /^\s*\/\/\s*(.+)$/;
 
 const escapeRegExp = (value: string) =>
@@ -10,13 +8,21 @@ const escapeRegExp = (value: string) =>
 const detectNewline = (value: string) =>
   value.includes("\r\n") ? "\r\n" : "\n";
 
-const appendGainIfMissing = (line: string, gain: number) =>
-  GAIN_AT_END_REGEX.test(line.trimEnd()) ? line : `${line}.gain(${gain})`;
+const setGainValue = (line: string, gain: number) => {
+  const gainIndex = line.lastIndexOf(".gain(");
+  if (gainIndex === -1) {
+    return line;
+  }
 
-const setGainValue = (line: string, gain: number) =>
-  GAIN_AT_END_REGEX.test(line.trimEnd())
-    ? line.replace(GAIN_AT_END_REGEX, `.gain(${gain})`)
-    : `${line}.gain(${gain})`;
+  const closingIndex = line.indexOf(")", gainIndex);
+  if (closingIndex === -1) {
+    return line;
+  }
+
+  const prefix = line.slice(0, gainIndex);
+  const suffix = line.slice(closingIndex + 1);
+  return `${prefix}.gain(${gain})${suffix}`;
+};
 
 const extractInstrumentName = (line: string) => {
   const match = line.match(INSTRUMENT_COMMENT_REGEX);
@@ -43,12 +49,18 @@ const extractGainFromBlock = (lines: string[], startIndex: number) => {
       return 1;
     }
 
-    const gainMatch = rawLine.match(GAIN_VALUE_CAPTURE_REGEX);
-    if (!gainMatch) {
+    const gainIndex = rawLine.lastIndexOf(".gain(");
+    if (gainIndex === -1) {
       return 1;
     }
 
-    const parsedGain = Number(gainMatch[1]);
+    const closingIndex = rawLine.indexOf(")", gainIndex);
+    if (closingIndex === -1) {
+      return 1;
+    }
+
+    const gainValue = rawLine.slice(gainIndex + 6, closingIndex).trim();
+    const parsedGain = Number(gainValue);
     return Number.isFinite(parsedGain) ? parsedGain : 1;
   }
 
@@ -86,21 +98,6 @@ const applyGainToBlock = (
 };
 
 export const handleStrudel = {
-  append_gain(code: string) {
-    if (typeof code !== "string" || !code.length) {
-      return code;
-    }
-
-    const newline = detectNewline(code);
-    const updatedLines = code
-      .split(/\r?\n/)
-      .map((line) =>
-        STRUDEL_LINE_PATTERN.test(line) ? appendGainIfMissing(line, 1) : line,
-      );
-
-    return updatedLines.join(newline);
-  },
-
   set_gain(code: string, instrument: string, gain: number) {
     if (
       typeof code !== "string" ||
