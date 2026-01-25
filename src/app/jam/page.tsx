@@ -16,7 +16,7 @@ export default function JamPage() {
             <p className="text-xs font-black tracking-[0.3em] text-gray-700 uppercase">
               jam lab
             </p>
-            <h1 className="text-4xl font-black">Improv-igator</h1>
+            <h1 className="text-4xl font-black">ImproviGator</h1>
             <p className="text-xs font-bold text-gray-700">
               Make a groove, chat, and record your takes.
             </p>
