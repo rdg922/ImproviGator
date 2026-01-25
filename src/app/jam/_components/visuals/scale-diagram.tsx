@@ -97,7 +97,7 @@ export default function ScaleDiagram() {
       </div>
       <div className="flex flex-1">
         <Guitar
-          className="scale-guide-board flex-1 text-[0.5rem]"
+          className="scale-guide-board flex-1 text-[0.6rem]"
           strings={selectedFrets}
           onChange={setSelectedFrets}
           frets={FRET_RANGE}
