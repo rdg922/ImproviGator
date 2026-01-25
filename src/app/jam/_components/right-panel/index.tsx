@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
+import { SkipBack, Play, Pause, Circle, Square, ChevronLeft } from "react-feather";
 import RightPanelGrid from "./grid";
 import RightPanelRecording from "./recording";
 import { useJamSession } from "../context/jam-session-context";
@@ -566,9 +567,10 @@ export default function RightPanel() {
         {view !== "Recording" && (
           <button
             onClick={handleReset}
-            className="border-4 border-black bg-orange-300 px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-0.75 hover:translate-y-0.75 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1.5 active:translate-y-1.5 active:shadow-none"
+            className="flex items-center gap-2 border-4 border-black bg-orange-300 px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-0.75 hover:translate-y-0.75 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1.5 active:translate-y-1.5 active:shadow-none"
           >
-            ⏮ Reset
+            <SkipBack size={20} fill="currentColor" strokeWidth={3} />
+            Reset
           </button>
         )}
 
@@ -579,7 +581,7 @@ export default function RightPanel() {
               ? !hasRecordingAudio
               : !isReady || !strudelCode || countdownMode !== null
           }
-          className={`border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-0.75 hover:translate-y-0.75 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1.5 active:translate-y-1.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 ${
+          className={`flex items-center gap-2 border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-0.75 hover:translate-y-0.75 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1.5 active:translate-y-1.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 ${
             view === "Recording"
               ? isTakePlaying
                 ? "bg-red-400"
@@ -589,29 +591,55 @@ export default function RightPanel() {
                 : "bg-green-400"
           }`}
         >
-          {view === "Recording"
-            ? isTakePlaying
-              ? "⏸ Pause"
-              : "▶ Play Take"
-            : isPlaying
-              ? "⏸ Pause"
-              : "▶ Play"}
+          {view === "Recording" ? (
+            isTakePlaying ? (
+              <>
+                <Pause size={20} fill="currentColor" strokeWidth={3} />
+                Pause
+              </>
+            ) : (
+              <>
+                <Play size={20} fill="currentColor" strokeWidth={3} />
+                Play Take
+              </>
+            )
+          ) : isPlaying ? (
+            <>
+              <Pause size={20} fill="currentColor" strokeWidth={3} />
+              Pause
+            </>
+          ) : (
+            <>
+              <Play size={20} fill="currentColor" strokeWidth={3} />
+              Play
+            </>
+          )}
         </button>
 
         <button
           onClick={handleRecord}
           disabled={countdownMode !== null}
-          className={`border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-0.75 hover:translate-y-0.75 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1.5 active:translate-y-1.5 active:shadow-none ${
+          className={`flex items-center gap-2 border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-0.75 hover:translate-y-0.75 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1.5 active:translate-y-1.5 active:shadow-none ${
             isRecording ? "bg-red-500" : "bg-blue-400"
           }`}
         >
-          {isRecording ? "⏹ Stop Recording" : "⏺ Record"}
+          {isRecording ? (
+            <>
+              <Square size={20} fill="currentColor" strokeWidth={3} />
+              Stop Recording
+            </>
+          ) : (
+            <>
+              <Circle size={20} fill="currentColor" strokeWidth={3} />
+              Record
+            </>
+          )}
         </button>
 
         <button
           onClick={handleToggleView}
           disabled={!recording || analysisStatus === "loading"}
-          className={`border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-0.75 hover:translate-y-0.75 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1.5 active:translate-y-1.5 active:shadow-none ${
+          className={`flex items-center gap-2 border-4 border-black px-10 py-4 text-xl font-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform hover:translate-x-0.75 hover:translate-y-0.75 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-1.5 active:translate-y-1.5 active:shadow-none ${
             recording && analysisStatus !== "loading"
               ? "bg-purple-400"
               : "bg-gray-300 text-gray-500"
@@ -625,7 +653,10 @@ export default function RightPanel() {
           ) : view === "Grid" ? (
             "View Recording"
           ) : (
-            "← Backing Track"
+            <>
+              <ChevronLeft size={20} fill="currentColor" strokeWidth={3} />
+              Backing Track
+            </>
           )}
         </button>
       </div>
