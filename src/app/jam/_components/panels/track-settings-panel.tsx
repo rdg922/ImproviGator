@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useJamSession } from "../context/jam-session-context";
 
-const SLIDER_MIN = .1;
+const SLIDER_MIN = 0.1;
 const SLIDER_MAX = 1;
 const SLIDER_STEP = 0.1;
 
@@ -87,7 +87,10 @@ export default function TrackSettingsPanel() {
                     defaultValue={normalizedGain}
                     key={`${track.instrument}-${normalizedGain}`}
                     onInput={(event) =>
-                      setTrackGain(track.instrument, Number((event.target as HTMLInputElement).value))
+                      setTrackGain(
+                        track.instrument,
+                        Number((event.target as HTMLInputElement).value),
+                      )
                     }
                     className="w-full accent-purple-500"
                   />
