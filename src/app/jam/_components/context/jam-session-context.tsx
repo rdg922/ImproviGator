@@ -133,7 +133,7 @@ $: s("hh*8").bank("RolandTR808").velocity("<0.5 0.2>").swingBy(1/3, 4).gain(1)`;
 
 export function JamSessionProvider({ children }: { children: ReactNode }) {
   const strudelRef = useRef<any>(null);
-  const [leftPanelMode, setLeftPanelMode] = useState<LeftPanelMode>(null);
+  const [leftPanelMode, setLeftPanelMode] = useState<LeftPanelMode>("Create");
   const [key, setKey] = useState("C");
   const [modality, setModality] = useState("Major");
   const [tempo, setTempo] = useState(120);
