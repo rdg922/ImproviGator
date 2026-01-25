@@ -234,7 +234,7 @@ async function callGeminiAPI(prompt: string): Promise<string> {
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         thinkingConfig: {
-          thinkingBudget: 0,
+          thinkingBudget: 1024,
         },
         tools: [
           {

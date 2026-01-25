@@ -23,6 +23,11 @@ export default function LeftPanel() {
       return;
     }
 
+    if (!leftPanelMode) {
+      gsap.set(highlight, { opacity: 0, width: 0 });
+      return;
+    }
+
     const tabMap: Record<string, HTMLButtonElement | null> = {
       Create: createTabRef.current,
       Chat: chatTabRef.current,
@@ -43,6 +48,7 @@ export default function LeftPanel() {
     gsap.set(highlight, {
       x: offsetLeft,
       width: offsetWidth,
+      opacity: 1,
       backgroundColor: colors[leftPanelMode],
     });
   }, []);
@@ -51,6 +57,16 @@ export default function LeftPanel() {
     const highlight = highlightRef.current;
     const tabsContainer = tabsRef.current;
     if (!highlight || !tabsContainer) {
+      return;
+    }
+
+    if (!leftPanelMode) {
+      gsap.to(highlight, {
+        opacity: 0,
+        width: 0,
+        duration: 0.2,
+        ease: "power2.out",
+      });
       return;
     }
 
@@ -76,6 +92,7 @@ export default function LeftPanel() {
       .to(highlight, {
         x: offsetLeft,
         width: offsetWidth,
+        opacity: 1,
         duration: 0.35,
       })
       .to(
