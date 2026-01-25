@@ -116,15 +116,20 @@ const JamSessionContext = createContext<JamSessionContextType | undefined>(
   undefined,
 );
 
-const DEFAULT_STRUDEL_CODE = `let chords = chord(\`<
-F7 Bb7 F7 [Cm7 F7]
->\`)
-// Piano
-$: n("7 8 [10 9] 8").set(chords).voicing().dec(.2).gain(1)
-// Keys
-$: chords.struct("- x - x").voicing().room(.5).gain(1)
+const DEFAULT_STRUDEL_CODE = `setcps(120/60/4)
+
+// 16 Bar Chill Jazz Progression in C Major
+let chords = chord("<C^9 A-7 D-9 G13 C^9 A7b13 D-9 G7alt C^9 C7 F^7 F-7 C^9 A-7 D-9 G13>")
+
+// Synth
+$: chords.voicing().s("gm_epiano1").struct("x ~ x ~ ~ x ~ ~").room(0.6).velocity(0.6).swingBy(1/3, 4).gain(1)
+
 // Bass
-$: n("0 - 1 -").set(chords).mode("root:g2").voicing().gain(1)`;
+$: chords.rootNotes().s("gm_acoustic_bass").struct("x ~ ~ x x ~ ~ ~").octave(2).gain(0.8).lpf(400).gain(1)
+
+// Drums
+$: s("bd ~ bd ~").bank("RolandTR808").gain(0.7)
+$: s("hh*8").bank("RolandTR808").velocity("<0.5 0.2>").swingBy(1/3, 4).gain(1)`;
 
 export function JamSessionProvider({ children }: { children: ReactNode }) {
   const strudelRef = useRef<any>(null);
