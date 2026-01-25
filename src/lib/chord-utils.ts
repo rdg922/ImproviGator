@@ -39,7 +39,7 @@ export const normalizeDbKey = (key: string) => {
     Ab: "G#",
     Bb: "A#",
   };
-  
+
   const sharpKey = flatToSharp[key] ?? key;
   return sharpKey.includes("#") ? sharpKey.replace("#", "sharp") : sharpKey;
 };
@@ -57,8 +57,10 @@ const mapSuffixToDb = (suffix: string) => {
     min: "minor",
     minor: "minor",
     "-": "minor",
+    "^": "major",
     maj7: "maj7",
     ma7: "maj7",
+    "^7": "maj7",
     m7: "m7",
     min7: "m7",
     "-7": "m7",
@@ -68,6 +70,15 @@ const mapSuffixToDb = (suffix: string) => {
     o7: "dim7",
     m7b5: "m7b5",
     ø: "m7b5",
+    "^9": "maj9",
+    "-9": "m9",
+    "-11": "m11",
+    "-13": "m13",
+    "7alt": "alt",
+    "7#5": "aug7",
+    "7b13": "aug7",
+    "#5": "aug",
+    b13: "aug",
   };
 
   return mappings[lower] ?? normalized;
@@ -75,9 +86,7 @@ const mapSuffixToDb = (suffix: string) => {
 
 const parseChordParts = (chordName: string) => {
   const chordInfo = TonalChord.get(chordName);
-  if (chordInfo.empty) return null;
-
-  const symbol = chordInfo.symbol || chordName;
+  const symbol = chordInfo.empty ? chordName : chordInfo.symbol || chordName;
   const match = /^([A-G](?:#|b)?)([^/]*)(?:\/([A-G](?:#|b)?))?$/i.exec(
     symbol.trim(),
   );
