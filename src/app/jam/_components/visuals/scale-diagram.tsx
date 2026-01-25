@@ -91,18 +91,19 @@ export default function ScaleDiagram() {
   }, [rootPitchClass, scalePitchClasses]);
 
   return (
-    <div className="flex h-full flex-col border-4 border-black bg-white p-3 justify-center">
-      <h2 className="text-xl font-black">
-        Scale Guide - {key} {modality}
-      </h2>
-
-      <Guitar
-        className="scale-guide-board flex-1 text-[0.5rem] border-black border-4"
-        strings={selectedFrets}
-        onChange={setSelectedFrets}
-        frets={FRET_RANGE}
-        renderFinger={renderFinger}
-      />
+    <div className="flex h-full flex-col border-4 border-black bg-white">
+      <div className="border-b-4 border-black bg-lime-200 px-4 py-2 text-sm font-black tracking-wide uppercase">
+        Scale Guide — {key} {modality}
+      </div>
+      <div className="flex flex-1">
+        <Guitar
+          className="scale-guide-board flex-1 text-[0.5rem]"
+          strings={selectedFrets}
+          onChange={setSelectedFrets}
+          frets={FRET_RANGE}
+          renderFinger={renderFinger}
+        />
+      </div>
     </div>
   );
 }
