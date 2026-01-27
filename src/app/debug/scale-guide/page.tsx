@@ -53,7 +53,7 @@ function ScaleGuideDebugPanel() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-2 text-sm font-bold uppercase tracking-wide">
+        <label className="flex flex-col gap-2 text-sm font-bold tracking-wide uppercase">
           Key
           <select
             value={key}
@@ -68,7 +68,7 @@ function ScaleGuideDebugPanel() {
           </select>
         </label>
 
-        <label className="flex flex-col gap-2 text-sm font-bold uppercase tracking-wide">
+        <label className="flex flex-col gap-2 text-sm font-bold tracking-wide uppercase">
           Modality
           <select
             value={modality}
@@ -99,13 +99,13 @@ export default function ScaleGuideDebugPage() {
   return (
     <JamSessionProvider>
       <main className="min-h-screen bg-gradient-to-br from-pink-100 via-amber-100 to-cyan-100 p-6">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 lg:flex-row">
-          <div className="flex-1">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+          <div className="w-full">
             <div className="rotate-[0.4deg] overflow-hidden border-4 border-black bg-white shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
               <ScaleDiagram />
             </div>
           </div>
-          <div className="w-full max-w-md">
+          <div className="w-full">
             <ScaleGuideDebugPanel />
           </div>
         </div>
