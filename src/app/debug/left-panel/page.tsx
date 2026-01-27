@@ -29,9 +29,7 @@ const SAMPLE_ANALYSIS_MESSAGE: ChatMessage = {
 
 const parseChordTokens = (code: string) => {
   const assignmentMatch =
-    /\b\w+\s*=\s*chord\(\s*([`"'])([\s\S]*?)\1\s*\)/s.exec(
-      code,
-    );
+    /\b\w+\s*=\s*chord\(\s*([`"'])([\s\S]*?)\1\s*\)/s.exec(code);
   const directMatch = /\bchord\(\s*([`"'])([\s\S]*?)\1\s*\)/s.exec(code);
   const templateMatch = /\bchord\s*`([\s\S]*?)`/s.exec(code);
 
@@ -87,7 +85,10 @@ const parseChordTokens = (code: string) => {
       i++;
     } else {
       let buffer = "";
-      while (i < chordContent.length && !/[\s\[\]]/.test(chordContent[i] ?? "")) {
+      while (
+        i < chordContent.length &&
+        !/[\s\[\]]/.test(chordContent[i] ?? "")
+      ) {
         buffer += chordContent[i] ?? "";
         i++;
       }
@@ -106,7 +107,9 @@ const getStrudelDiagnostics = (code: string) => {
 
   const hasChordCall = /\bchord\s*\(/.test(code) || /\bchord\s*`/.test(code);
   if (!hasChordCall) {
-    errors.push("No chord() pattern found. Add chord(\"<...>\") to parse chords.");
+    errors.push(
+      'No chord() pattern found. Add chord("<...>") to parse chords.',
+    );
   }
 
   const bracketDiff =
@@ -236,7 +239,7 @@ function LeftPanelDebugControls() {
         </p>
       </header>
 
-      <div className="rounded-lg border-3 border-black bg-gray-50 px-3 py-2 text-xs font-black uppercase text-gray-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+      <div className="rounded-lg border-3 border-black bg-gray-50 px-3 py-2 text-xs font-black text-gray-700 uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         Active tab: {leftPanelMode ?? "None"}
       </div>
 
@@ -338,7 +341,7 @@ function LeftPanelDebugControls() {
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-sm font-black uppercase text-gray-700">
+            <h3 className="text-sm font-black text-gray-700 uppercase">
               Parsing Console
             </h3>
             {diagnostics.errors.length > 0 ? (
@@ -360,7 +363,7 @@ function LeftPanelDebugControls() {
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-sm font-black uppercase text-gray-700">
+            <h3 className="text-sm font-black text-gray-700 uppercase">
               Parsing Debug Info
             </h3>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -372,7 +375,9 @@ function LeftPanelDebugControls() {
               </div>
               <div className="rounded-lg border-3 border-black bg-gray-50 p-3 text-xs font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                 <p className="mb-2 text-gray-600">Tracks</p>
-                <p className="text-base font-black">{diagnostics.tracks.length}</p>
+                <p className="text-base font-black">
+                  {diagnostics.tracks.length}
+                </p>
               </div>
             </div>
             <div className="rounded-lg border-3 border-black bg-white p-3 text-xs font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
