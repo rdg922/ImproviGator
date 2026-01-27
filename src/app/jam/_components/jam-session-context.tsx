@@ -5,6 +5,10 @@ import type { ReactNode, MutableRefObject } from "react";
 import { handleStrudel } from "~/services/handleStrudel";
 import { api } from "~/trpc/react";
 import type { AnalysisInput, AnalysisOutput } from "~/types/analysis";
+import {
+  parseStrudelChords,
+  type ParsedChordToken,
+} from "~/lib/music/strudel-chords";
 
 interface MidiNote {
   pitch: number;
@@ -80,7 +84,7 @@ interface JamSessionContextType {
   setStrudelCode: (code: string) => void;
   tracks: TrackSetting[];
   setTrackGain: (instrument: string, gain: number) => Promise<void>;
-  parsedChords: Array<{ chord: string | string[]; index: number }>;
+  parsedChords: ParsedChordToken[];
 
   // Shared Strudel player reference
   strudelRef: MutableRefObject<any>;
@@ -131,9 +135,7 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
   ]);
   const [strudelCode, setStrudelCodeState] = useState(DEFAULT_STRUDEL_CODE);
   const [tracks, setTracks] = useState<TrackSetting[]>([]);
-  const [parsedChords, setParsedChords] = useState<
-    Array<{ chord: string | string[]; index: number }>
-  >([]);
+  const [parsedChords, setParsedChords] = useState<ParsedChordToken[]>([]);
   const [description, setDescription] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
@@ -156,92 +158,10 @@ export function JamSessionProvider({ children }: { children: ReactNode }) {
     api as unknown as AnalysisApi
   ).chat.analyzeRecording.useMutation();
 
-  // Parse chords from Strudel code
-  const parseChords = (code: string) => {
-    // Match chord() with any variable name, using backticks, double quotes, or single quotes
-    const chordLineMatch = /let\s+\w+\s*=\s*chord\(([`"])([^`"']+)\1\)/s.exec(
-      code,
-    );
-    if (!chordLineMatch) return [];
-
-    let rawContent = chordLineMatch[2] ?? "";
-    if (!rawContent) return [];
-
-    // Try to extract content within < > to ignore multipliers like *4
-    // If no angle brackets, use the entire content
-    const angleMatch = /<([^>]+)>/s.exec(rawContent);
-    if (angleMatch?.[1]) {
-      rawContent = angleMatch[1];
-    }
-
-    // Remove comments (// single-line comments)
-    const chordContent = rawContent
-      .split("\n")
-      .map((line) => {
-        const commentIndex = line.indexOf("//");
-        return commentIndex >= 0 ? line.substring(0, commentIndex) : line;
-      })
-      .join(" ")
-      .trim();
-
-    const tokens: Array<{ chord: string | string[]; index: number }> = [];
-    let index = 0;
-    let i = 0;
-
-    while (i < chordContent.length) {
-      // Skip whitespace
-      while (i < chordContent.length && /\s/.test(chordContent[i] ?? "")) {
-        i++;
-      }
-      if (i >= chordContent.length) break;
-
-      // Check for bracketed group
-      if (chordContent[i] === "[") {
-        i++;
-        const groupChords: string[] = [];
-        let buffer = "";
-
-        while (i < chordContent.length && chordContent[i] !== "]") {
-          if (/\s/.test(chordContent[i] ?? "")) {
-            if (buffer) {
-              groupChords.push(buffer);
-              buffer = "";
-            }
-          } else {
-            buffer += chordContent[i] ?? "";
-          }
-          i++;
-        }
-        if (buffer) groupChords.push(buffer);
-        if (groupChords.length > 0) {
-          tokens.push({ chord: groupChords, index });
-          index++;
-        }
-        i++; // skip ']'
-      } else {
-        // Single chord
-        let buffer = "";
-        while (
-          i < chordContent.length &&
-          !/[\s\[\]]/.test(chordContent[i] ?? "")
-        ) {
-          buffer += chordContent[i] ?? "";
-          i++;
-        }
-        if (buffer) {
-          tokens.push({ chord: buffer, index });
-          index++;
-        }
-      }
-    }
-
-    return tokens;
-  };
-
   useEffect(() => {
     console.log("Strudel code changed, updating tracks and chords");
     setTracks(handleStrudel.get_tracks(strudelCode));
-    const newChords = parseChords(strudelCode);
+    const newChords = parseStrudelChords(strudelCode);
     console.log("Parsed chords:", newChords);
     setParsedChords(newChords);
   }, [strudelCode]);

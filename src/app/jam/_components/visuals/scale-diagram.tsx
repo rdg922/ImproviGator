@@ -3,8 +3,14 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import dynamic from "next/dynamic";
-import { Note as TonalNote, Scale } from "tonal";
+import { Note as TonalNote } from "tonal";
 import { useJamSession } from "../context/jam-session-context";
+import {
+  STANDARD_GUITAR_TUNING_MIDI,
+  GUITAR_FRET_RANGE,
+  getScalePitchClasses,
+  pitchClassFromMidi,
+} from "~/lib/music/scale-utils";
 
 interface GuitarProps {
   className?: string;
@@ -20,51 +26,22 @@ const Guitar = dynamic<GuitarProps>(
 );
 Guitar.displayName = "Guitar";
 
-const STANDARD_TUNING = [64, 59, 55, 50, 45, 40]; // High E to Low E
-const FRET_RANGE = { from: 0, amount: 12 } as const;
-const MODALITY_TO_SCALE: Record<string, string> = {
-  Major: "major",
-  Minor: "minor",
-  Dorian: "dorian",
-  Phrygian: "phrygian",
-  Lydian: "lydian",
-  Mixolydian: "mixolydian",
-  Aeolian: "aeolian",
-  Locrian: "locrian",
-};
-
-const pitchClass = (midi: number) => ((midi % 12) + 12) % 12;
-
 export default function ScaleDiagram() {
   const { key, modality } = useJamSession();
   const [selectedFrets, setSelectedFrets] = useState<number[]>(() =>
-    STANDARD_TUNING.map(() => 0),
+    STANDARD_GUITAR_TUNING_MIDI.map(() => 0),
   );
 
-  const rootPitchClass = useMemo(() => {
-    const chroma = TonalNote.chroma(key);
-    return typeof chroma === "number" ? chroma : 0;
-  }, [key]);
-
-  const scalePitchClasses = useMemo(() => {
-    const tonalModality = MODALITY_TO_SCALE[modality] ?? modality.toLowerCase();
-    const scaleQuery = `${key} ${tonalModality}`.trim();
-    const tonalScale = Scale.get(scaleQuery);
-    if (!tonalScale.notes.length) {
-      return new Set([rootPitchClass]);
-    }
-    return new Set(
-      tonalScale.notes
-        .map((noteName) => TonalNote.chroma(noteName))
-        .filter((value): value is number => typeof value === "number"),
-    );
-  }, [key, modality, rootPitchClass]);
+  const { rootPitchClass, scalePitchClasses } = useMemo(
+    () => getScalePitchClasses(key, modality),
+    [key, modality],
+  );
 
   const renderFinger = useMemo(() => {
     const renderFingerInternal = (stringIndex: number, fret: number) => {
-      const openPitch = STANDARD_TUNING[stringIndex] ?? 0;
+      const openPitch = STANDARD_GUITAR_TUNING_MIDI[stringIndex] ?? 0;
       const midiNote = openPitch + fret;
-      const chroma = pitchClass(midiNote);
+      const chroma = pitchClassFromMidi(midiNote);
       if (!scalePitchClasses.has(chroma)) {
         return null;
       }
@@ -100,7 +77,7 @@ export default function ScaleDiagram() {
           className="scale-guide-board flex-1 text-[0.6rem]"
           strings={selectedFrets}
           onChange={setSelectedFrets}
-          frets={FRET_RANGE}
+          frets={GUITAR_FRET_RANGE}
           renderFinger={renderFinger}
         />
       </div>

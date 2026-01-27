@@ -1,43 +1,11 @@
-import { Note as TonalNote, Scale } from "tonal";
+import { Note as TonalNote } from "tonal";
 import type { Note } from "./pitch-detection";
-
-export const NOTE_NAMES = [
-  "C",
-  "C#",
-  "D",
-  "D#",
-  "E",
-  "F",
-  "F#",
-  "G",
-  "G#",
-  "A",
-  "A#",
-  "B",
-] as const;
-export const SCALE_NAMES = [
-  "Major",
-  "Natural Minor",
-  "Harmonic Minor",
-  "Melodic Minor",
-  "Dorian",
-  "Phrygian",
-  "Lydian",
-  "Mixolydian",
-  "Chromatic",
-] as const;
-
-const SCALE_TONAL_LOOKUP: Record<string, string> = {
-  Major: "major",
-  "Natural Minor": "natural minor",
-  "Harmonic Minor": "harmonic minor",
-  "Melodic Minor": "melodic minor",
-  Dorian: "dorian",
-  Phrygian: "phrygian",
-  Lydian: "lydian",
-  Mixolydian: "mixolydian",
-  Chromatic: "chromatic",
-};
+import {
+  NOTE_NAMES,
+  SCALE_NAMES,
+  SCALE_TONAL_LOOKUP,
+} from "~/lib/music/theory";
+import { getScalePitchClassSet } from "~/lib/music/scale-utils";
 
 export interface ScaleAnalysis {
   totalNotes: number;
@@ -83,18 +51,8 @@ export class MidiAnalyzer {
     rootNote: string,
     scaleName: string,
   ): Set<string> {
-    const tonalScaleName = SCALE_TONAL_LOOKUP[scaleName];
-    if (!tonalScaleName) return new Set();
-
-    const scaleQuery = `${rootNote} ${tonalScaleName}`.trim();
-    const scale = Scale.get(scaleQuery);
-    if (!scale.notes.length) return new Set();
-
-    return new Set(
-      scale.notes
-        .map((noteName) => TonalNote.pitchClass(noteName))
-        .filter((pc): pc is string => Boolean(pc)),
-    );
+    if (!SCALE_TONAL_LOOKUP[scaleName]) return new Set();
+    return getScalePitchClassSet(rootNote, scaleName);
   }
 
   isNoteInScale(

@@ -1,8 +1,11 @@
 import type {
+  ChordSummaryMetrics,
+  HarmonicAnalysisMetrics,
   HarmonicAnalysisResult,
   MidiNoteEvent,
+  NoteHarmonicContext,
   ParsedChordToken,
-} from "~/lib/audio/harmonic-analysis";
+} from "~/lib/analysis/harmonic-analysis";
 
 export type AnalysisSkillLevel = "beginner" | "intermediate" | "advanced";
 

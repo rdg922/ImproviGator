@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { SkipBack, Play, Pause, Circle, Square, ChevronLeft } from "react-feather";
+import {
+  SkipBack,
+  Play,
+  Pause,
+  Circle,
+  Square,
+  ChevronLeft,
+} from "react-feather";
 import RightPanelGrid from "./grid";
 import RightPanelRecording from "./recording";
 import { useJamSession } from "../context/jam-session-context";
@@ -10,7 +17,7 @@ import {
   detectNotesFromAudio,
   loadAudioFromBlob,
   type PitchDetectionParams,
-} from "~/lib/audio/pitch-detection";
+} from "~/lib/analysis/pitch-detection";
 import { StrudelMirror } from "@strudel/codemirror";
 import { evalScope } from "@strudel/core";
 import { transpiler } from "@strudel/transpiler";

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useJamSession } from "../context/jam-session-context";
+import { NOTE_NAMES } from "~/lib/music/theory";
 
 const formatDuration = (ms: number) => `${(ms / 1000).toFixed(2)}s`;
 
@@ -252,20 +253,6 @@ export default function RightPanelRecording({
               length: noteRange.max - noteRange.min + 1,
             }).map((_, index) => {
               const pitch = noteRange.max - index;
-              const NOTE_NAMES = [
-                "C",
-                "C#",
-                "D",
-                "D#",
-                "E",
-                "F",
-                "F#",
-                "G",
-                "G#",
-                "A",
-                "A#",
-                "B",
-              ];
               const noteName = NOTE_NAMES[pitch % 12];
               const octave = Math.floor(pitch / 12) - 1;
               const isC = pitch % 12 === 0;

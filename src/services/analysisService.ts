@@ -1,6 +1,6 @@
 import { GoogleGenAI, type Content, type Part } from "@google/genai";
 import { env } from "~/env";
-import { analyzeHarmonicContext } from "~/lib/audio/harmonic-analysis";
+import { analyzeHarmonicContext } from "~/lib/analysis/harmonic-analysis";
 import { Chord, Note, Scale } from "tonal";
 import type { AnalysisInput, AnalysisOutput } from "~/types/analysis";
 

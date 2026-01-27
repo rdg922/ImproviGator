@@ -1,5 +1,6 @@
 import { Chord, Note, Scale } from "tonal";
 import guitarDb from "~/app/_components/chords-db/lib/guitar.json";
+import { normalizeScaleName } from "~/lib/music/theory";
 import type { Note as PitchNote } from "./pitch-detection";
 import {
   analyzeMelodicContour,
@@ -64,23 +65,6 @@ export interface HarmonicAnalysisResult {
   intervalDistribution: Record<string, number>;
   noteContexts: NoteHarmonicContext[];
 }
-
-const MODALITY_TO_TONAL: Record<string, string> = {
-  Major: "major",
-  Minor: "minor",
-  "Natural Minor": "natural minor",
-  "Harmonic Minor": "harmonic minor",
-  "Melodic Minor": "melodic minor",
-  Dorian: "dorian",
-  Phrygian: "phrygian",
-  Lydian: "lydian",
-  Mixolydian: "mixolydian",
-  Aeolian: "aeolian",
-  Locrian: "locrian",
-};
-
-const normalizeScaleName = (name: string) =>
-  MODALITY_TO_TONAL[name] ?? name.toLowerCase();
 
 type ChordPosition = {
   frets: number[];
@@ -398,29 +382,21 @@ export const buildChordScaleRecommendation = (
     scaleName = "major";
   } else if (
     symbol.toLowerCase().includes("m7b5") ||
-    quality === "diminished"
+    symbol.toLowerCase().includes("ø")
   ) {
     scaleName = "locrian";
-  } else if (symbol.toLowerCase().includes("dim")) {
-    scaleName = "locrian";
-  } else if (symbol.toLowerCase().includes("m")) {
+  } else if (quality === "minor") {
     scaleName = "dorian";
-  } else if (symbol.toLowerCase().includes("7")) {
-    scaleName = "mixolydian";
-  } else if (quality === "augmented") {
-    scaleName = "lydian";
-  } else {
-    scaleName = normalizeScaleName(modality);
   }
 
-  const scale = Scale.get(`${root} ${scaleName}`);
+  const scalePitchClasses = getScalePitchClasses(root, scaleName).filter(
+    Boolean,
+  );
 
   return {
     chord: chordName,
-    root,
-    scaleName,
-    scaleNotes: scale.notes,
-    quality: chordInfo.quality,
+    scale: `${root} ${scaleName}`,
+    scalePitchClasses,
     symbol,
   };
 };

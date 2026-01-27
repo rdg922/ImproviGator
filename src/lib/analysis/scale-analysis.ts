@@ -1,31 +1,7 @@
 import type { Note } from "./pitch-detection";
+import { NOTE_NAMES, SCALES } from "~/lib/music/theory";
 
-export const SCALES: Record<string, number[]> = {
-  Major: [0, 2, 4, 5, 7, 9, 11],
-  "Natural Minor": [0, 2, 3, 5, 7, 8, 10],
-  "Harmonic Minor": [0, 2, 3, 5, 7, 8, 11],
-  "Melodic Minor": [0, 2, 3, 5, 7, 9, 11],
-  Dorian: [0, 2, 3, 5, 7, 9, 10],
-  Phrygian: [0, 1, 3, 5, 7, 8, 10],
-  Lydian: [0, 2, 4, 6, 7, 9, 11],
-  Mixolydian: [0, 2, 4, 5, 7, 9, 10],
-  Chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-};
-
-export const NOTE_NAMES = [
-  "C",
-  "C#",
-  "D",
-  "D#",
-  "E",
-  "F",
-  "F#",
-  "G",
-  "G#",
-  "A",
-  "A#",
-  "B",
-];
+export { NOTE_NAMES, SCALES };
 
 export function getMidiNoteName(midiNumber: number): string {
   const octave = Math.floor(midiNumber / 12) - 1;

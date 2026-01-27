@@ -10,7 +10,7 @@ import {
   detectNotesFromAudio,
   loadAudioFromBlob,
   type PitchDetectionParams,
-} from "~/lib/audio/pitch-detection";
+} from "~/lib/analysis/pitch-detection";
 
 const DEFAULT_PITCH_PARAMS: PitchDetectionParams = {
   noteSegmentation: 0.5,

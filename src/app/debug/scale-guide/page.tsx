@@ -6,32 +6,7 @@ import {
   JamSessionProvider,
   useJamSession,
 } from "~/app/jam/_components/context/jam-session-context";
-
-const KEY_OPTIONS = [
-  "C",
-  "Db",
-  "D",
-  "Eb",
-  "E",
-  "F",
-  "Gb",
-  "G",
-  "Ab",
-  "A",
-  "Bb",
-  "B",
-];
-
-const MODALITY_OPTIONS = [
-  "Major",
-  "Minor",
-  "Dorian",
-  "Phrygian",
-  "Lydian",
-  "Mixolydian",
-  "Aeolian",
-  "Locrian",
-];
+import { KEY_OPTIONS, MODALITY_OPTIONS } from "~/lib/music/options";
 
 function ScaleGuideDebugPanel() {
   const { key, setKey, modality, setModality } = useJamSession();

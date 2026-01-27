@@ -12,18 +12,18 @@ import {
   loadAudioFromBlob,
   loadAudioFromFile,
   type Note,
-} from "~/lib/audio/pitch-detection";
+} from "~/lib/analysis/pitch-detection";
 import {
   NOTE_NAMES,
   getMidiNoteName,
   getNotesOutsideScale,
   isNoteInScale,
   SCALES,
-} from "~/lib/audio/scale-analysis";
+} from "~/lib/analysis/scale-analysis";
 import {
   analyzeMelodicContour,
   getIntervalDistribution,
-} from "~/lib/audio/melodic-contour";
+} from "~/lib/analysis/melodic-contour";
 import { useAudioRecorder } from "~/hooks/useAudioRecorder";
 
 export default function PitchDetector() {

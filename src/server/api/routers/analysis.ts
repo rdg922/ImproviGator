@@ -8,7 +8,7 @@ import {
   buildChordToneRecommendation,
   type MidiNoteEvent,
   type ParsedChordToken,
-} from "~/lib/audio/harmonic-analysis";
+} from "~/lib/analysis/harmonic-analysis";
 import type { AnalysisToolResult } from "~/types/analysis";
 
 const MAX_GEMINI_ATTEMPTS = 3;

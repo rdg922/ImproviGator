@@ -1,7 +1,83 @@
 "use client";
 
 import { useState } from "react";
-import { parseStrudelChords } from "~/lib/music/strudel-chords";
+
+function parseChords(code: string) {
+  // Match chord() with backticks, double quotes, or single quotes
+  const chordLineMatch = code.match(
+    /let\s+chords\s*=\s*chord\(([`"])([^`"']+)\1\)/s,
+  );
+  if (!chordLineMatch) return [];
+
+  let rawContent = chordLineMatch[2];
+
+  // Try to extract content within < > to ignore multipliers like *4
+  // If no angle brackets, use the entire content
+  const angleMatch = rawContent.match(/<([^>]+)>/s);
+  if (angleMatch) {
+    rawContent = angleMatch[1];
+  }
+
+  // Remove comments (// single-line comments)
+  let chordContent = rawContent
+    .split("\n")
+    .map((line) => {
+      const commentIndex = line.indexOf("//");
+      return commentIndex >= 0 ? line.substring(0, commentIndex) : line;
+    })
+    .join(" ")
+    .trim();
+
+  const tokens: Array<{ chord: string | string[]; index: number }> = [];
+  let index = 0;
+  let i = 0;
+
+  while (i < chordContent.length) {
+    // Skip whitespace
+    while (i < chordContent.length && /\s/.test(chordContent[i])) {
+      i++;
+    }
+    if (i >= chordContent.length) break;
+
+    // Check for bracketed group
+    if (chordContent[i] === "[") {
+      i++;
+      const groupChords: string[] = [];
+      let buffer = "";
+
+      while (i < chordContent.length && chordContent[i] !== "]") {
+        if (/\s/.test(chordContent[i])) {
+          if (buffer) {
+            groupChords.push(buffer);
+            buffer = "";
+          }
+        } else {
+          buffer += chordContent[i];
+        }
+        i++;
+      }
+      if (buffer) groupChords.push(buffer);
+      if (groupChords.length > 0) {
+        tokens.push({ chord: groupChords, index });
+        index++;
+      }
+      i++; // skip ']'
+    } else {
+      // Single chord
+      let buffer = "";
+      while (i < chordContent.length && !/[\s\[\]]/.test(chordContent[i])) {
+        buffer += chordContent[i];
+        i++;
+      }
+      if (buffer) {
+        tokens.push({ chord: buffer, index });
+        index++;
+      }
+    }
+  }
+
+  return tokens;
+}
 
 const TEST_CASES = [
   {
@@ -58,7 +134,7 @@ export default function TestChordsPage() {
   const [selectedTest, setSelectedTest] = useState(0);
 
   const handleParse = () => {
-    const result = parseStrudelChords(strudelCode);
+    const result = parseChords(strudelCode);
     setParsedChords(result);
   };
 

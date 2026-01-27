@@ -3,6 +3,7 @@ import { GoogleGenAI, Type, type Content, type Part } from "@google/genai";
 import { Chord, Scale } from "tonal";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { env } from "~/env";
+import { normalizeScaleName } from "~/lib/music/theory";
 import * as fs from "fs";
 import * as path from "path";
 import { analyzeRecording } from "~/services/analysisService";
@@ -182,23 +183,6 @@ const QUERY_STRUDEL_DOCS_TOOL = {
 
 type ConversationEntry = Content;
 type ConversationPart = Part;
-
-const MODALITY_TO_TONAL: Record<string, string> = {
-  Major: "major",
-  Minor: "minor",
-  "Natural Minor": "natural minor",
-  "Harmonic Minor": "harmonic minor",
-  "Melodic Minor": "melodic minor",
-  Dorian: "dorian",
-  Phrygian: "phrygian",
-  Lydian: "lydian",
-  Mixolydian: "mixolydian",
-  Aeolian: "aeolian",
-  Locrian: "locrian",
-};
-
-const normalizeScaleName = (name: string) =>
-  MODALITY_TO_TONAL[name] ?? name.toLowerCase();
 
 export type ToolResult =
   | { type: "edit_backing_track"; newStrudelCode: string; explanation: string }
