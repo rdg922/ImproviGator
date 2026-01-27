@@ -62,6 +62,10 @@ const mapSuffixToDb = (suffix: string) => {
     o7: "dim7",
     m7b5: "m7b5",
     ø: "m7b5",
+    m9: "m9",
+    min9: "m9",
+    "-9": "m9",
+    "7b13": "aug7",
   };
 
   return mappings[lower] ?? normalized;
